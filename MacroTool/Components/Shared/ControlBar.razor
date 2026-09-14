@@ -1,0 +1,200 @@
+@implements IDisposable
+@inject MacroEngine Engine
+@inject TimelineStore Store
+@inject EngineSettings Settings
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<header class="topbar">
+    <div class="bar-inner">
+        <a class="brand" href="/">
+            <span class="brand-mark">M</span>
+            <span class="brand-text">
+                <span class="brand-name">MacroTool</span>
+                <span class="brand-sub">local console</span>
+            </span>
+        </a>
+
+        <nav class="nav-tabs">
+            <NavLink class="nav-tab" ActiveClass="active" href="/" Match="NavLinkMatch.All">概览</NavLink>
+            <NavLink class="nav-tab" ActiveClass="active" href="/timeline" Match="NavLinkMatch.Prefix">时间线</NavLink>
+            <NavLink class="nav-tab" ActiveClass="active" href="/logs" Match="NavLinkMatch.Prefix">日志</NavLink>
+        </nav>
+
+        <span class="bar-sep" aria-hidden="true"></span>
+
+        <EngineStatusChip />
+
+        <div class="bar-metrics">
+            @if (_snapshot.State == ToolState.Recording)
+            {
+                <span class="bar-metric"><span class="bar-metric-label">点击</span>@_snapshot.ClickCount</span>
+                <span class="bar-metric"><span class="bar-metric-label">按键</span>@_snapshot.KeyCount</span>
+                <span class="bar-metric"><span class="bar-metric-label">已录</span>@FormatMs(_snapshot.RecordingElapsedMs)</span>
+            }
+            else if (_snapshot.State == ToolState.Playing)
+            {
+                string roundSuffix = _snapshot.PlaybackRepeat > 0 ? " / " + _snapshot.PlaybackRepeat : "";
+                <span class="bar-metric"><span class="bar-metric-label">轮数</span>@($"{_snapshot.PlaybackRound}{roundSuffix}")</span>
+                <span class="bar-metric"><span class="bar-metric-label">已播</span>@FormatMs(_snapshot.PlaybackElapsedMs)</span>
+            }
+            else
+            {
+                <span class="bar-metric"><span class="bar-metric-label">事件</span>@_snapshot.EventCount</span>
+                <span class="bar-metric"><span class="bar-metric-label">时长</span>@FormatMs(_snapshot.DurationMs)</span>
+            }
+        </div>
+
+        <span class="bar-sep" aria-hidden="true"></span>
+
+        <div class="transport">
+            @if (_snapshot.State == ToolState.Recording)
+            {
+                <MudButton Class="btn-tonal-danger" Size="Size.Small" StartIcon="@Icons.Material.Filled.Stop"
+                           OnClick="StopRecording">停止录制</MudButton>
+            }
+            else
+            {
+                <MudButton Class="btn-tonal-danger" Size="Size.Small" StartIcon="@Icons.Material.Filled.FiberManualRecord"
+                           OnClick="StartRecording" Disabled="@(_snapshot.State == ToolState.Playing)">录制</MudButton>
+            }
+
+            @if (_snapshot.State == ToolState.Playing)
+            {
+                <MudButton Class="btn-tonal-ok" Size="Size.Small" StartIcon="@Icons.Material.Filled.Stop"
+                           OnClick="StopPlayback">停止回放</MudButton>
+            }
+            else
+            {
+                <MudButton Class="btn-tonal-ok" Size="Size.Small" StartIcon="@Icons.Material.Filled.PlayArrow"
+                           OnClick="StartPlayback" Disabled="@(!_snapshot.HasTimeline || _snapshot.State == ToolState.Recording)">回放</MudButton>
+            }
+
+            <MudButton Class="btn-tonal-neutral" Size="Size.Small" StartIcon="@Icons.Material.Filled.StopCircle"
+                       OnClick="StopAll" Disabled="@(_snapshot.State == ToolState.Idle)">停止</MudButton>
+        </div>
+
+        <span class="bar-sep" aria-hidden="true"></span>
+
+        <div class="bar-params">
+            <div class="bar-field">
+                <span class="micro-label">倍速</span>
+                <MudNumericField T="double" @bind-Value="_speed" Min="0.1" Max="20" Step="0.1" Format="0.##"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </div>
+            <div class="bar-field">
+                <span class="micro-label">抖动 (px)</span>
+                <MudNumericField T="int" @bind-Value="_jitter" Min="0" Max="100"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </div>
+            <div class="bar-field">
+                <span class="micro-label">回放次数 (0=无限)</span>
+                <MudNumericField T="int" @bind-Value="_repeatCount" Min="0" Max="9999"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </div>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" OnClick="Apply">应用</MudButton>
+        </div>
+
+        <span class="topbar-spacer"></span>
+
+        <MudIconButton Icon="@Icons.Material.Filled.PowerSettingsNew" Color="Color.Inherit"
+                       OnClick="Shutdown" title="关闭服务" Size="Size.Small" />
+    </div>
+</header>
+
+@if (_snapshot.State == ToolState.Recording)
+{
+    <div class="banner-recording banner-in-frame">
+        <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" />
+        录制中：请勿点击本页面（包括停止按钮），页面上的点击会被录入时间线。建议用 F10 停止录制。
+    </div>
+}
+
+@code {
+    private EngineSnapshot _snapshot;
+    private double _speed;
+    private int _jitter;
+    private int _repeatCount;
+    private System.Threading.Timer? _timer;
+    private bool _subscribed;
+    private bool _disposed;
+
+    protected override void OnInitialized()
+    {
+        _snapshot = Engine.GetSnapshot();
+        _speed = Settings.Speed;
+        _jitter = Settings.Jitter;
+        _repeatCount = Settings.RepeatCount;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender || _subscribed) return;
+        _subscribed = true;
+        Engine.StateChanged += OnEngineChanged;
+        Engine.TimelineChanged += OnEngineChanged;
+        _timer = new System.Threading.Timer(_ =>
+        {
+            if (_disposed) return;
+            InvokeAsync(() =>
+            {
+                if (_disposed) return;
+                _snapshot = Engine.GetSnapshot();
+                StateHasChanged();
+            });
+        }, null, 500, 500);
+    }
+
+    private void OnEngineChanged()
+    {
+        if (_disposed) return;
+        InvokeAsync(() =>
+        {
+            _snapshot = Engine.GetSnapshot();
+            StateHasChanged();
+        });
+    }
+
+    private async Task StartRecording() => await Task.Run(Engine.StartRecording);
+
+    private async Task StopRecording() => await Task.Run(() => Engine.StopRecording(fromUi: true));
+
+    private async Task StartPlayback() => await Task.Run(Engine.StartPlayback);
+
+    private async Task StopPlayback() => await Task.Run(Engine.StopPlayback);
+
+    private async Task StopAll() => await Task.Run(() => Engine.StopAll(fromUi: true));
+
+    private void Apply()
+    {
+        if (Engine.UpdateSettings(_speed, _jitter, _repeatCount, out var error))
+            Snackbar.Add("参数已更新", Severity.Success);
+        else
+            Snackbar.Add(error ?? "参数无效", Severity.Warning);
+    }
+
+    private async Task Shutdown()
+    {
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            "确认关闭 MacroTool 服务？正在进行的录制会先保存。",
+            "关闭服务",
+            yesText: "关闭",
+            cancelText: "取消");
+
+        if (confirmed == true)
+            Engine.RequestShutdown(fromUi: true);
+    }
+
+    private static string FormatMs(double ms) => TimeSpan.FromMilliseconds(Math.Max(0, ms)).ToString(@"m\:ss\.f");
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _timer?.Dispose();
+        if (_subscribed)
+        {
+            Engine.StateChanged -= OnEngineChanged;
+            Engine.TimelineChanged -= OnEngineChanged;
+        }
+    }
+}

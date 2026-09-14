@@ -1,0 +1,52 @@
+@implements IDisposable
+@inject MacroEngine Engine
+
+<span class="state-pill @PillClass()">
+    <span class="state-dot"></span>@Label()
+</span>
+
+@code {
+    private ToolState _state = ToolState.Idle;
+    private bool _subscribed;
+    private bool _disposed;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender || _subscribed) return;
+        _subscribed = true;
+        _state = Engine.State;
+        Engine.StateChanged += OnStateChanged;
+        StateHasChanged();
+    }
+
+    private void OnStateChanged()
+    {
+        if (_disposed) return;
+        InvokeAsync(() =>
+        {
+            _state = Engine.State;
+            StateHasChanged();
+        });
+    }
+
+    private string Label() => _state switch
+    {
+        ToolState.Recording => "录制中",
+        ToolState.Playing => "回放中",
+        _ => "空闲"
+    };
+
+    private string PillClass() => _state switch
+    {
+        ToolState.Recording => "is-recording",
+        ToolState.Playing => "is-playing",
+        _ => "is-idle"
+    };
+
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_subscribed)
+            Engine.StateChanged -= OnStateChanged;
+    }
+}

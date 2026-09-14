@@ -1,0 +1,78 @@
+@implements IDisposable
+@inject LogBuffer Logs
+@inject IJSRuntime JS
+
+<section class="panel">
+    <div class="panel-head">
+        <h2 class="panel-title">运行日志</h2>
+        <span class="panel-head-meta">@_entries.Count 条</span>
+        <span class="panel-head-spacer"></span>
+        <MudSwitch T="bool" @bind-Value="_follow" @bind-Value:after="StateHasChanged"
+                   Color="Color.Primary" Size="Size.Small" Label="跟随" />
+    </div>
+
+    <div class="log-panel" style="@(Tall ? "max-height: calc(100vh - 230px);" : "max-height: 300px;")" @ref="_panel">
+        @if (_entries.Count == 0)
+        {
+            <div class="log-empty">暂无日志，引擎事件会出现在这里。</div>
+        }
+        @foreach (var entry in _entries)
+        {
+            <div class="log-line @LevelClass(entry.Level)">
+                <span class="log-time">@entry.Timestamp.ToString("HH:mm:ss")</span>
+                <span class="log-msg">@entry.Message</span>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private readonly List<EngineLogEntry> _entries = [];
+    private ElementReference _panel;
+    private bool _follow = true;
+    private bool _subscribed;
+    private bool _disposed;
+
+    [Parameter]
+    public bool Tall { get; set; }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !_subscribed)
+        {
+            _subscribed = true;
+            _entries.AddRange(Logs.Snapshot());
+            Logs.Added += OnLogAdded;
+            StateHasChanged();
+        }
+
+        if (_follow)
+            _ = JS.InvokeVoidAsync("macroTool.scrollToBottom", _panel);
+    }
+
+    private void OnLogAdded(EngineLogEntry entry)
+    {
+        if (_disposed) return;
+        InvokeAsync(() =>
+        {
+            _entries.Add(entry);
+            if (_entries.Count > LogBuffer.DefaultCapacity)
+                _entries.RemoveRange(0, _entries.Count - LogBuffer.DefaultCapacity);
+            StateHasChanged();
+        });
+    }
+
+    private static string LevelClass(LogLevel level) => level switch
+    {
+        LogLevel.Error or LogLevel.Critical => "is-error",
+        LogLevel.Warning => "is-warn",
+        _ => ""
+    };
+
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_subscribed)
+            Logs.Added -= OnLogAdded;
+    }
+}

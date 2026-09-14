@@ -1,0 +1,73 @@
+@implements IDisposable
+@inject MacroEngine Engine
+@inject HotkeyHost Hotkeys
+@inject TimelineStore Store
+
+<section class="panel">
+    <div class="panel-head">
+        <h2 class="panel-title">环境与热键</h2>
+    </div>
+
+    <div class="kv">
+        <div class="kv-row">
+            <span class="kv-key">录制 / 回放</span>
+            <span class="kv-val @(Hotkeys.Status.FullyOperational ? "is-ok" : "is-warn")">
+                F10 · F11 — @(Hotkeys.Status.FullyOperational ? "已注册" : "注册失败，请用页面按钮")
+            </span>
+        </div>
+        <div class="kv-row">
+            <span class="kv-key">退出热键</span>
+            <span class="kv-val @(Hotkeys.Status.ExitKeyAvailable ? "" : "is-warn")">
+                @(Hotkeys.Status.ExitKeyAvailable ? Hotkeys.Status.ExitKeyLabel : "F12 被占用 — 请用页面按钮")
+            </span>
+        </div>
+        <div class="kv-row">
+            <span class="kv-key">权限</span>
+            <span class="kv-val @(Engine.IsElevated ? "is-ok" : "is-warn")">
+                @(Engine.IsElevated ? "已以管理员身份运行" : "未提权 — 游戏以管理员运行时需同样提权")
+            </span>
+        </div>
+        <div class="kv-row">
+            <span class="kv-key">时间线文件</span>
+            <span class="kv-val">@Store.FilePath</span>
+        </div>
+    </div>
+
+    @if (!Hotkeys.Status.FullyOperational)
+    {
+        <p class="notice is-warn">热键可能被其他程序占用；不影响页面控制，退出请用"关闭服务"。</p>
+    }
+
+    <ul class="hints">
+        <li>录制与回放期间游戏窗口不可移动；建议窗口化 / 无边框运行。</li>
+        <li>点击坐标为屏幕绝对坐标；仅记录鼠标左键与键盘。</li>
+        <li class="is-danger">反作弊游戏存在封号风险，请在单机或允许宏的游戏中使用。</li>
+    </ul>
+</section>
+
+@code {
+    private bool _subscribed;
+    private bool _disposed;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !_subscribed)
+        {
+            _subscribed = true;
+            Hotkeys.StatusChanged += OnStatusChanged;
+        }
+    }
+
+    private void OnStatusChanged()
+    {
+        if (_disposed) return;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_subscribed)
+            Hotkeys.StatusChanged -= OnStatusChanged;
+    }
+}

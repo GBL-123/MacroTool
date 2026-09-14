@@ -1,4 +1,14 @@
 ﻿@inherits LayoutComponentBase
 
-@Body
+<MudThemeProvider Theme="@MacroTheme.Instance" IsDarkMode="false" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+
+<ControlBar />
+
+<main id="main-content" class="page">
+    @Body
+</main>

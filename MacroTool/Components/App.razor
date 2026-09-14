@@ -1,13 +1,16 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="MacroTool - 本机宏录制与回放控制台" />
+    <meta name="theme-color" content="#F7F6F3" />
     <base href="/" />
+    <link rel="icon" type="image/svg+xml" href="@Assets["favicon.svg"]" />
     <ResourcePreloader />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" />
+    <link rel="stylesheet" href="@Assets["css/app.css"]" />
     <link rel="stylesheet" href="@Assets["MacroTool.styles.css"]" />
     <ImportMap />
     <HeadOutlet @rendermode="InteractiveServer" />
@@ -18,6 +21,7 @@
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
+    <script src="@Assets["js/macro.js"]"></script>
 </body>
 
 </html>
