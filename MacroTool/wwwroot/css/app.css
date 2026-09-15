@@ -1,5 +1,5 @@
 /* ============================================================
-   MacroTool console theme �?light
+   MacroTool console theme �?light
    Editorial paper aesthetic: warm bone canvas, white cards,
    hairline borders, near-flat shadows, pastel status colors,
    a single black primary, amber kept as the brand spot accent.
@@ -271,18 +271,15 @@ body::after {
 .bar-params {
     display: flex;
     gap: 12px;
-    align-items: flex-end;
+    align-items: center;
 }
 
 .bar-field {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    width: 104px;
+    width: 84px;
 }
 
-.bar-field .micro-label {
-    white-space: nowrap;
+.bar-field--wide {
+    width: 122px;
 }
 
 .bar-field .mud-input {
@@ -416,6 +413,7 @@ h1:focus-visible {
 
 .col-4 { grid-column: span 4; }
 .col-5 { grid-column: span 5; }
+.col-6 { grid-column: span 6; }
 .col-7 { grid-column: span 7; }
 .col-8 { grid-column: span 8; }
 .col-12 { grid-column: span 12; }
@@ -438,7 +436,7 @@ h1:focus-visible {
 }
 
 @media (max-width: 1000px) {
-    .col-4, .col-5, .col-7, .col-8 {
+    .col-4, .col-5, .col-6, .col-7, .col-8 {
         grid-column: span 12;
     }
 }
@@ -887,7 +885,7 @@ h1:focus-visible {
                 border-color 0.18s var(--ease), color 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
 
-/* MudSwitch 的基座在 v9 里也�?mud-button-root 类，悬浮/按下的位移会覆盖
+/* MudSwitch 的基座在 v9 里也�?mud-button-root 类，悬浮/按下的位移会覆盖
    其滑块的 translateX，导致开关跟随鼠标抖动，这里排除 */
 .mud-button-root:hover:not(.mud-disabled):not(.mud-switch-base) {
     transform: translateY(-1px);

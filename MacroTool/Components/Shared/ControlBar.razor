@@ -78,18 +78,15 @@
 
         <div class="bar-params">
             <div class="bar-field">
-                <span class="micro-label">倍速</span>
-                <MudNumericField T="double" @bind-Value="_speed" Min="0.1" Max="20" Step="0.1" Format="0.##"
+                <MudNumericField T="double" @bind-Value="_speed" Label="倍速" Min="0.1" Max="20" Step="0.1" Format="0.##"
                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
             </div>
             <div class="bar-field">
-                <span class="micro-label">抖动 (px)</span>
-                <MudNumericField T="int" @bind-Value="_jitter" Min="0" Max="100"
+                <MudNumericField T="int" @bind-Value="_jitter" Label="抖动 (px)" Min="0" Max="100"
                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
             </div>
-            <div class="bar-field">
-                <span class="micro-label">回放次数 (0=无限)</span>
-                <MudNumericField T="int" @bind-Value="_repeatCount" Min="0" Max="9999"
+            <div class="bar-field bar-field--wide">
+                <MudNumericField T="int" @bind-Value="_repeatCount" Label="回放次数 (0=无限)" Min="0" Max="9999"
                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
             </div>
             <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" OnClick="Apply">应用</MudButton>
@@ -176,8 +173,8 @@
     private async Task Shutdown()
     {
         bool? confirmed = await DialogService.ShowMessageBoxAsync(
-            "确认关闭 MacroTool 服务？正在进行的录制会先保存。",
             "关闭服务",
+            "确认关闭 MacroTool 服务？正在进行的录制会先保存。",
             yesText: "关闭",
             cancelText: "取消");
 
