@@ -77,17 +77,24 @@
         <span class="bar-sep" aria-hidden="true"></span>
 
         <div class="bar-params">
-            <div class="bar-field">
-                <MudNumericField T="double" @bind-Value="_speed" Label="倍速" Min="0.1" Max="20" Step="0.1" Format="0.##"
-                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <div class="bar-field bar-field--speed">
+                <span class="micro-label">倍速</span>
+                <MudSelect T="double" @bind-Value="_speed" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+                    @foreach (var option in SpeedOptions)
+                    {
+                        <MudSelectItem T="double" Value="@option">@($"{option:0.0}×")</MudSelectItem>
+                    }
+                </MudSelect>
             </div>
             <div class="bar-field">
-                <MudNumericField T="int" @bind-Value="_jitter" Label="抖动 (px)" Min="0" Max="100"
-                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <span class="micro-label">抖动 (px)</span>
+                <MudTextField T="string" Value="_jitterText" ValueChanged="OnJitterTextChanged" Error="_jitterInvalid"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
             </div>
-            <div class="bar-field bar-field--wide">
-                <MudNumericField T="int" @bind-Value="_repeatCount" Label="回放次数 (0=无限)" Min="0" Max="9999"
-                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <div class="bar-field" title="回放次数（留空或 0 = 无限循环）">
+                <span class="micro-label">回放次数</span>
+                <MudTextField T="string" Value="_repeatCountText" ValueChanged="OnRepeatCountTextChanged" Error="_repeatCountInvalid"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
             </div>
             <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" OnClick="Apply">应用</MudButton>
         </div>
@@ -108,20 +115,28 @@
 }
 
 @code {
+    internal static readonly double[] SpeedChoices =
+        Enumerable.Range(1, 30).Select(i => i / 10.0).ToArray();
+
     private EngineSnapshot _snapshot;
     private double _speed;
-    private int _jitter;
-    private int _repeatCount;
+    private string _jitterText = "";
+    private string _repeatCountText = "";
+    private bool _jitterInvalid;
+    private bool _repeatCountInvalid;
     private System.Threading.Timer? _timer;
     private bool _subscribed;
     private bool _disposed;
+
+    private IEnumerable<double> SpeedOptions =>
+        SpeedChoices.Contains(_speed) ? SpeedChoices : SpeedChoices.Append(_speed).OrderBy(v => v);
 
     protected override void OnInitialized()
     {
         _snapshot = Engine.GetSnapshot();
         _speed = Settings.Speed;
-        _jitter = Settings.Jitter;
-        _repeatCount = Settings.RepeatCount;
+        _jitterText = Settings.Jitter.ToString();
+        _repeatCountText = Settings.RepeatCount == 0 ? "" : Settings.RepeatCount.ToString();
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -162,12 +177,60 @@
 
     private async Task StopAll() => await Task.Run(() => Engine.StopAll(fromUi: true));
 
+    private void OnJitterTextChanged(string? text)
+    {
+        _jitterText = text ?? "";
+        _jitterInvalid = false;
+    }
+
+    private void OnRepeatCountTextChanged(string? text)
+    {
+        _repeatCountText = text ?? "";
+        _repeatCountInvalid = false;
+    }
+
     private void Apply()
     {
-        if (Engine.UpdateSettings(_speed, _jitter, _repeatCount, out var error))
+        if (!TryParseInt(_jitterText, min: 0, max: 100, out int jitter))
+        {
+            _jitterInvalid = true;
+            Snackbar.Add("抖动需为 0 到 100 之间的整数", Severity.Error);
+            return;
+        }
+
+        int repeatCount;
+        if (string.IsNullOrWhiteSpace(_repeatCountText))
+            repeatCount = 0;
+        else if (!TryParseInt(_repeatCountText, min: 0, max: 9999, out repeatCount))
+        {
+            _repeatCountInvalid = true;
+            Snackbar.Add("回放次数需为 0 到 9999 之间的整数", Severity.Error);
+            return;
+        }
+
+        if (Engine.UpdateSettings(_speed, jitter, repeatCount, out var error))
             Snackbar.Add("参数已更新", Severity.Success);
         else
-            Snackbar.Add(error ?? "参数无效", Severity.Warning);
+            Snackbar.Add(error ?? "参数无效", Severity.Error);
+    }
+
+    internal static bool TryParseInt(string? text, int min, int max, out int value)
+    {
+        value = 0;
+        if (text is null)
+            return false;
+
+        var normalized = new System.Text.StringBuilder(text.Length);
+        foreach (char c in text.Trim())
+            normalized.Append(c is >= '\uFF10' and <= '\uFF19' ? (char)(c - '\uFF10' + '0') : c);
+
+        if (!int.TryParse(normalized.ToString(), out int parsed))
+            return false;
+        if (parsed < min || parsed > max)
+            return false;
+
+        value = parsed;
+        return true;
     }
 
     private async Task Shutdown()
@@ -182,7 +245,7 @@
             Engine.RequestShutdown(fromUi: true);
     }
 
-    private static string FormatMs(double ms) => TimeSpan.FromMilliseconds(Math.Max(0, ms)).ToString(@"m\:ss\.f");
+    private static string FormatMs(double ms) => TimeSpan.FromMilliseconds(Math.Max(0, ms)).ToString(@"m\:ss\.fff");
 
     public void Dispose()
     {

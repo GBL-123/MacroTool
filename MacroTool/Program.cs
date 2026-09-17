@@ -6,6 +6,7 @@ using MacroTool.Application.Interop;
 using MacroTool.Application.Storage;
 using MacroTool.Components;
 using Microsoft.Extensions.Options;
+using MudBlazor;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
@@ -16,7 +17,10 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 
 Native.SetProcessDPIAware();
 
-builder.Services.AddMudServices();
+builder.Services.AddMudServices(config =>
+{
+    config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.TopRight;
+});
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

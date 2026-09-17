@@ -3,6 +3,7 @@ using MacroTool.Application.Engine;
 using MacroTool.Components.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MacroTool.Tests;
 
@@ -74,13 +75,15 @@ public sealed class ControlBarTests : IDisposable
     }
 
     [Fact]
-    public void Apply_ValidValues_UpdatesEngineSettings()
+    public async Task Apply_ValidValues_UpdatesEngineSettings()
     {
         var cut = RenderIdle();
 
+        var speedSelect = cut.FindComponent<MudBlazor.MudSelect<double>>();
+        await cut.InvokeAsync(() => speedSelect.Instance.ValueChanged.InvokeAsync(2.5));
+
         var inputs = cut.FindAll(".bar-field input");
         Assert.Equal(3, inputs.Count);
-        inputs[0].Change("2.5");
         inputs[1].Change("5");
         inputs[2].Change("3");
 
@@ -92,17 +95,73 @@ public sealed class ControlBarTests : IDisposable
     }
 
     [Fact]
-    public void Apply_UiClampsBelowMin_BeforeEngineValidation()
+    public void SpeedChoices_Cover_01_To_30_By_Tenths()
+    {
+        Assert.Equal(30, ControlBar.SpeedChoices.Length);
+        Assert.Equal(0.1, ControlBar.SpeedChoices[0], 3);
+        Assert.Equal(3.0, ControlBar.SpeedChoices[^1], 3);
+        for (int i = 1; i < ControlBar.SpeedChoices.Length; i++)
+            Assert.Equal(0.1, ControlBar.SpeedChoices[i] - ControlBar.SpeedChoices[i - 1], 3);
+    }
+
+    [Fact]
+    public void Apply_InvalidNumericText_ShowsErrorToast_AndKeepsSettings()
     {
         var cut = RenderIdle();
 
         var inputs = cut.FindAll(".bar-field input");
-        inputs[0].Change("0");
+        inputs[1].Change("abc");
+
+        var snackbar = _scope.Context.Services.GetRequiredService<MudBlazor.ISnackbar>();
+        cut.FindAll("button").Single(b => b.TextContent.Trim() == "应用").Click();
+
+        Assert.Contains(snackbar.ShownSnackbars, s => s.Message?.Contains("整数") == true);
+        Assert.DoesNotContain(snackbar.ShownSnackbars, s => s.Message?.Contains("参数已更新") == true);
+        Assert.Equal(2, _scope.Settings.Jitter);
+    }
+
+    [Fact]
+    public void Apply_FullWidthDigits_AreNormalized()
+    {
+        var cut = RenderIdle();
+
+        var inputs = cut.FindAll(".bar-field input");
+        inputs[1].Change("１５");
+        inputs[2].Change("３");
 
         cut.FindAll("button").Single(b => b.TextContent.Trim() == "应用").Click();
 
-        // UI 层把低于 Min(0.1) 的输入钳制为 0.1；引擎侧的非法值拒绝由 MacroEngineTests 覆盖
-        Assert.Equal(0.1, _scope.Settings.Speed);
+        Assert.Equal(15, _scope.Settings.Jitter);
+        Assert.Equal(3, _scope.Settings.RepeatCount);
+    }
+
+    [Fact]
+    public void Apply_EmptyRepeatCount_MeansInfinite()
+    {
+        var cut = RenderIdle();
+
+        var inputs = cut.FindAll(".bar-field input");
+        inputs[2].Change("");
+
+        cut.FindAll("button").Single(b => b.TextContent.Trim() == "应用").Click();
+
+        Assert.Equal(0, _scope.Settings.RepeatCount);
+    }
+
+    [Theory]
+    [InlineData("15", true, 15)]
+    [InlineData(" 7 ", true, 7)]
+    [InlineData("１５", true, 15)]
+    [InlineData("0.5", false, 0)]
+    [InlineData("abc", false, 0)]
+    [InlineData("-1", false, 0)]
+    [InlineData("101", false, 0)]
+    [InlineData("", false, 0)]
+    public void TryParseInt_NormalizesFullWidth_AndEnforcesRange(string text, bool expected, int expectedValue)
+    {
+        Assert.Equal(expected, ControlBar.TryParseInt(text, 0, 100, out int value));
+        if (expected)
+            Assert.Equal(expectedValue, value);
     }
 
     [Fact]

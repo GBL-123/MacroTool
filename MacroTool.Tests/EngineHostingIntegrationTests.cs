@@ -92,6 +92,68 @@ public sealed class EngineHostingIntegrationTests
     }
 
     [Fact]
+    public async Task EmptyRecordingStop_DoesNotOverwriteExistingTimeline()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        var ct = Xunit.TestContext.Current.CancellationToken;
+        var dir = NewTempDir();
+        try
+        {
+            var logs = new LogBuffer();
+            var store = new TimelineStore(Path.Combine(dir, "timeline.json"));
+            var original = new MacroTimeline
+            {
+                DurationMs = 500,
+                Events =
+                [
+                    new MacroEvent { T = 100, IsKey = false, Up = false, X = 10, Y = 20 },
+                    new MacroEvent { T = 180, IsKey = false, Up = true, X = 10, Y = 20 }
+                ]
+            };
+            Assert.True(store.Save(original, 1.0).Success);
+
+            var fileBefore = File.ReadAllText(store.FilePath);
+            var writeBefore = File.GetLastWriteTimeUtc(store.FilePath);
+
+            var engine = new MacroEngine(
+                new HotkeyHost(),
+                store,
+                new EngineSettings(1.0, 2),
+                logs,
+                NullLogger<MacroEngine>.Instance);
+            try
+            {
+                engine.ReplaceTimeline(store.Load().Timeline!);
+
+                // 安装真实低层钩子约 120ms；期间任何键鼠输入会让录制非空并使本用例失败，重跑即可
+                engine.StartRecording();
+                await Task.Delay(120, ct);
+                engine.StopRecording(fromUi: true);
+
+                Assert.Equal(fileBefore, File.ReadAllText(store.FilePath));
+                Assert.Equal(writeBefore, File.GetLastWriteTimeUtc(store.FilePath));
+
+                var snapshot = engine.GetSnapshot();
+                Assert.Equal(ToolState.Idle, snapshot.State);
+                Assert.True(snapshot.HasTimeline);
+                Assert.Equal(2, snapshot.EventCount);
+                Assert.Equal(500, snapshot.DurationMs);
+                Assert.Contains(logs.Snapshot(), e => e.Message.Contains("未捕获"));
+            }
+            finally
+            {
+                engine.Dispose();
+            }
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task BrowserLauncher_StartAsync_Disabled_DoesNotThrow()
     {
         var ct = Xunit.TestContext.Current.CancellationToken;

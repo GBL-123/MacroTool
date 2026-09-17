@@ -10,7 +10,7 @@
 
 <div class="page-head">
     <h1 class="page-title">时间线编辑</h1>
-    <span class="page-sub">事件 @_working.Count · 动作 @_actions.Count · @Duration.ToString("0.0") ms</span>
+    <span class="page-sub">事件 @_working.Count · 动作 @_actions.Count · @Duration.ToString("0.000") ms</span>
     @if (_dirty)
     {
         <span class="badge is-warn">未保存</span>
@@ -116,10 +116,10 @@ else
                     <CellTemplate>@(context.Item.IsKey ? "按键" : "点击")</CellTemplate>
                 </PropertyColumn>
                 <PropertyColumn Property="a => a.StartT" Title="起点 (ms)">
-                    <CellTemplate><span class="mono">@context.Item.StartT.ToString("0.0")</span></CellTemplate>
+                    <CellTemplate><span class="mono">@context.Item.StartT.ToString("0.000")</span></CellTemplate>
                 </PropertyColumn>
                 <PropertyColumn Property="a => a.DurationMs" Title="时长 (ms)">
-                    <CellTemplate><span class="mono">@(context.Item.IsPaired ? context.Item.DurationMs.ToString("0.0") : "-")</span></CellTemplate>
+                    <CellTemplate><span class="mono">@(context.Item.IsPaired ? context.Item.DurationMs.ToString("0.000") : "-")</span></CellTemplate>
                 </PropertyColumn>
                 <TemplateColumn Title="详情" Sortable="false">
                     <CellTemplate><span class="mono">@Detail(context.Item)</span></CellTemplate>
@@ -136,11 +136,11 @@ else
                     <div class="mono">
                         @if (context.Item.DownIndex is int downIndex)
                         {
-                            <div>down @_working[downIndex].T.ToString("0.0") ms</div>
+                            <div>down @_working[downIndex].T.ToString("0.000") ms</div>
                         }
                         @if (context.Item.UpIndex is int upIndex)
                         {
-                            <div>up @_working[upIndex].T.ToString("0.0") ms</div>
+                            <div>up @_working[upIndex].T.ToString("0.000") ms</div>
                         }
                     </div>
                 </MudTd>
@@ -155,6 +155,7 @@ else
     private List<TimelineAction> _actions = [];
     private HashSet<TimelineAction> _selected = [];
     private bool _dirty;
+    private bool _applyingFromEditor;
     private bool _inverted;
     private ToolState _engineState = ToolState.Idle;
     private bool _subscribed;
@@ -199,6 +200,12 @@ else
         if (_disposed) return;
         InvokeAsync(() =>
         {
+            if (_applyingFromEditor)
+            {
+                StateHasChanged();
+                return;
+            }
+
             if (_dirty)
             {
                 Snackbar.Add("引擎时间线已更新；当前编辑页有未保存更改，重新载入可同步", Severity.Info);
@@ -331,7 +338,7 @@ else
 
         bool? confirmed = await DialogService.ShowMessageBoxAsync(
             "时间缩放",
-            $"把全部事件时间缩放为 {_scaleFactor:0.###} 倍（总时长约 {(long)(Duration * _scaleFactor)} ms）。",
+            $"把全部事件时间缩放为 {_scaleFactor:0.###} 倍（总时长约 {Duration * _scaleFactor:0.000} ms）。",
             yesText: "缩放",
             cancelText: "取消");
         if (confirmed != true) return;
@@ -369,8 +376,16 @@ else
             return;
         }
 
-        Engine.ReplaceTimeline(timeline);
         _dirty = false;
+        _applyingFromEditor = true;
+        try
+        {
+            Engine.ReplaceTimeline(timeline);
+        }
+        finally
+        {
+            _applyingFromEditor = false;
+        }
         Snackbar.Add("已保存并应用到引擎", Severity.Success);
     }
 

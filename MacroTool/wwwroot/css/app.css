@@ -226,7 +226,7 @@ body::after {
 .bar-inner {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 9px;
     flex-wrap: wrap;
     row-gap: 10px;
     width: 100%;
@@ -270,21 +270,78 @@ body::after {
 
 .bar-params {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     align-items: center;
 }
 
 .bar-field {
-    width: 84px;
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
 }
 
-.bar-field--wide {
-    width: 122px;
+.bar-field .micro-label {
+    white-space: nowrap;
+}
+
+.bar-field .mud-input-control {
+    position: relative;
+    width: 52px;
+}
+
+.bar-field--speed .mud-input-control {
+    width: 72px;
+}
+
+.bar-field .mud-input-control-helper-container {
+    display: none;
+}
+
+.bar-field .mud-input-adornment {
+    margin: 0;
+}
+
+.bar-field .mud-input-adornment .mud-icon-button {
+    padding: 0;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
 }
 
 .bar-field .mud-input {
+    min-height: 26px;
+    font-size: 13px;
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+}
+
+.bar-field .mud-input-slot {
+    padding: 0 2px !important;
+}
+
+.bar-field .mud-input-adornment-icon {
+    font-size: 20px;
+}
+
+.bar-field .mud-input.mud-input-outlined .mud-input-outlined-border {
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+}
+
+.bar-field .mud-input.mud-input-outlined:hover .mud-input-outlined-border {
+    border-bottom-color: var(--border-strong) !important;
+}
+
+.bar-field .mud-input.mud-input-outlined.mud-input-focused .mud-input-outlined-border {
+    border-width: 0 0 2px 0 !important;
+    border-bottom-color: #111111 !important;
+}
+
+.bar-field .mud-input-control.mud-input-error .mud-input-outlined-border {
+    border-bottom-color: var(--mud-palette-error) !important;
 }
 
 .banner-in-frame {
@@ -978,10 +1035,6 @@ h1:focus-visible {
 .mud-input.mud-input-outlined.mud-input-focused .mud-input-outlined-border {
     border-color: #111111 !important;
     border-width: 2px !important;
-}
-
-.mud-input-label {
-    font-size: 12.5px;
 }
 
 .mud-switch-root .mud-switch-label {

@@ -1,6 +1,7 @@
 ﻿using Bunit;
 using MacroTool.Application.Engine;
 using MacroTool.Components.Pages;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MacroTool.Tests;
 
@@ -31,7 +32,7 @@ public sealed class TimelinePageTests : IDisposable
         Assert.Contains("时间线编辑", head);
         Assert.Contains("事件 5", head);
         Assert.Contains("动作 3", head);
-        Assert.Contains("500.0 ms", head);
+        Assert.Contains("500.000 ms", head);
 
         Assert.Equal(3, cut.FindAll(".mud-table-body .mud-table-row").Count);
     }
@@ -55,7 +56,7 @@ public sealed class TimelinePageTests : IDisposable
 
         cut.FindAll("button").Single(b => b.TextContent.Trim() == "平移").Click();
 
-        Assert.Contains("600.0 ms", cut.Find(".page-head").TextContent);
+        Assert.Contains("600.000 ms", cut.Find(".page-head").TextContent);
         Assert.NotNull(cut.Find(".badge.is-warn"));
     }
 
@@ -71,6 +72,19 @@ public sealed class TimelinePageTests : IDisposable
         Assert.True(File.Exists(_scope.Store.FilePath));
         Assert.False(cut.FindAll(".badge.is-warn").Any(), "保存后不应存在未保存标记");
         Assert.Equal(3, _scope.Engine.CurrentTimeline!.Events.Count);
+    }
+
+    [Fact]
+    public void Save_DoesNotWarnAboutUnsavedChanges()
+    {
+        var cut = Render();
+        cut.FindAll("button[title='删除该动作']")[0].Click();
+
+        var snackbar = _scope.Context.Services.GetRequiredService<MudBlazor.ISnackbar>();
+        cut.FindAll("button").Single(b => b.TextContent.Trim() == "保存").Click();
+
+        Assert.Contains(snackbar.ShownSnackbars, s => s.Message?.Contains("已保存并应用到引擎") == true);
+        Assert.DoesNotContain(snackbar.ShownSnackbars, s => s.Message?.Contains("未保存") == true);
     }
 
     /// <summary>工具栏里有 4 个数值输入；MudSwitch 的 checkbox 需要排除。</summary>
@@ -131,7 +145,7 @@ public sealed class TimelinePageTests : IDisposable
         var dialogYes = cut.FindAll(".mud-dialog button").Single(b => b.TextContent.Trim() == "缩放");
         dialogYes.Click();
 
-        Assert.Contains("250.0 ms", cut.Find(".page-head").TextContent);
+        Assert.Contains("250.000 ms", cut.Find(".page-head").TextContent);
         Assert.NotNull(cut.Find(".badge.is-warn"));
     }
 

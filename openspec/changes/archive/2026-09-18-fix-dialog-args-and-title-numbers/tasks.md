@@ -16,4 +16,4 @@
 
 ## 4. 验证 spec 场景
 
-- [ ] 4.1 手工核对 `ui-dialog-confirmation` spec 场景：三个确认框标题/正文归位；对话框标题与 page-title 中数字（如有）高度一致、"0"不呈 o 形。验证：对照 spec 场景逐条通过。
+- [x] 4.1 手工核对 `ui-dialog-confirmation` spec 场景：三个确认框标题/正文归位；对话框标题与 page-title 中数字（如有）高度一致、"0"不呈 o 形。验证：对照 spec 场景逐条通过。（用户已手工核对确认）

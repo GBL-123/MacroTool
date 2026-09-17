@@ -137,7 +137,7 @@
         _ => _snapshot.HasTimeline ? "按 F10 开始录制，F11 循环回放" : "按 F10 或控制条「录制」开始"
     };
 
-    private static string FormatMs(double ms) => TimeSpan.FromMilliseconds(Math.Max(0, ms)).ToString(@"m\:ss\.f");
+    private static string FormatMs(double ms) => TimeSpan.FromMilliseconds(Math.Max(0, ms)).ToString(@"m\:ss\.fff");
 
     public void Dispose()
     {

@@ -285,6 +285,16 @@ public sealed class MacroEngine : IDisposable
         }
 
         var timeline = recorder.Stop(fromUi);
+
+        if (timeline.Events.Count == 0)
+        {
+            Log(LogLevel.Information, _timeline is { Events.Count: > 0 }
+                ? "录制停止: 未捕获任何操作，已保留原有时间线（未覆盖）"
+                : "录制停止: 未捕获任何操作，未保存时间线");
+            StateChanged?.Invoke();
+            return;
+        }
+
         _timeline = timeline;
 
         int clicks = timeline.Events.Count(e => !e.IsKey && !e.Up);
