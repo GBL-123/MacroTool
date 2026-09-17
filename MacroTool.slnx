@@ -1,4 +1,7 @@
 <Solution>
   <Project Path="MacroTool.Tests/MacroTool.Tests.csproj" Id="d9887b8b-e567-4d2c-9157-37febef1f910" />
-  <Project Path="MacroTool/MacroTool.csproj" />
+  <Project Path="MacroTool.Domain/MacroTool.Domain.csproj" />
+  <Project Path="MacroTool.Application/MacroTool.Application.csproj" />
+  <Project Path="MacroTool.Infrastructure/MacroTool.Infrastructure.csproj" />
+  <Project Path="MacroTool.Web/MacroTool.Web.csproj" />
 </Solution>

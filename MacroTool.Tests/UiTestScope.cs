@@ -1,7 +1,9 @@
 using Bunit;
 using MacroTool.Application.Engine;
-using MacroTool.Application.Hotkeys;
-using MacroTool.Application.Storage;
+using MacroTool.Application.Ports;
+using MacroTool.Domain;
+using MacroTool.Infrastructure.Hotkeys;
+using MacroTool.Infrastructure.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -25,14 +27,14 @@ public sealed class UiTestScope : IDisposable
 
     public string TempDir { get; }
 
-    public UiTestScope(PlayerDelegates? delegates = null)
+    public UiTestScope(IInputSink? sink = null)
     {
         TempDir = Path.Combine(Path.GetTempPath(), "MacroToolUiTests_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(TempDir);
 
         Settings = new EngineSettings(1.0, 2);
         Store = new TimelineStore(Path.Combine(TempDir, "timeline.json"));
-        Engine = new MacroEngine(Hotkeys, Store, Settings, Logs, NullLogger<MacroEngine>.Instance, delegates);
+        Engine = new MacroEngine(Hotkeys, Store, Settings, Logs, NullLogger<MacroEngine>.Instance, sink ?? new FakeInputSink(), () => new FakeInputCaptureSource(), isElevated: false);
 
         Context = new BunitContext();
         Context.JSInterop.Mode = JSRuntimeMode.Loose;

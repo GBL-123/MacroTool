@@ -1,7 +1,8 @@
 ﻿using Bunit;
 using MacroTool.Application.Engine;
-using MacroTool.Application.Hotkeys;
-using MacroTool.Components.Shared;
+using MacroTool.Domain;
+using MacroTool.Infrastructure.Hotkeys;
+using MacroTool.Web.Components.Shared;
 
 namespace MacroTool.Tests;
 
@@ -22,8 +23,7 @@ public sealed class SharedComponentTests : IDisposable
     [Fact]
     public void EngineStatusChip_ShowsIdle_AndUpdatesToPlaying()
     {
-        var scope = new UiTestScope(new PlayerDelegates(
-            (_, _, _) => true, (_, _) => true, () => true));
+        var scope = new UiTestScope(new FakeInputSink());
         try
         {
             scope.Engine.ReplaceTimeline(new MacroTimeline

@@ -1,5 +1,5 @@
 ﻿using Bunit;
-using MacroTool.Components.Pages;
+using MacroTool.Web.Components.Pages;
 
 namespace MacroTool.Tests;
 

@@ -17,7 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MacroTool\MacroTool.csproj" />
+    <ProjectReference Include="..\MacroTool.Domain\MacroTool.Domain.csproj" />
+    <ProjectReference Include="..\MacroTool.Application\MacroTool.Application.csproj" />
+    <ProjectReference Include="..\MacroTool.Infrastructure\MacroTool.Infrastructure.csproj" />
+    <ProjectReference Include="..\MacroTool.Web\MacroTool.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

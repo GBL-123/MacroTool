@@ -1,6 +1,7 @@
 ﻿using Bunit;
 using MacroTool.Application.Engine;
-using MacroTool.Components.Shared;
+using MacroTool.Web.Components.Shared;
+using MacroTool.Domain;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,8 +48,7 @@ public sealed class ControlBarTests : IDisposable
     [Fact]
     public void PlayingState_TransportAvailability_Switches()
     {
-        var scope = new UiTestScope(new PlayerDelegates(
-            (_, _, _) => true, (_, _) => true, () => true));
+        var scope = new UiTestScope(new FakeInputSink());
         try
         {
             scope.Engine.ReplaceTimeline(new MacroTimeline

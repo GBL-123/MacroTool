@@ -36,19 +36,44 @@ Write-Host "== generate report =="
 & dotnet $rgDll "-reports:$coverageFile" "-targetdir:$(Join-Path $outDir 'report')" "-reporttypes:Html;TextSummary"
 if ($LASTEXITCODE -ne 0) { throw "report generation failed" }
 
-$summary = Join-Path $outDir "report\Summary.txt"
-$summaryText = Get-Content $summary -Raw
+# Product assemblies only; test assemblies are excluded from the gate.
+$productAssemblies = @(
+    "MacroTool.Domain",
+    "MacroTool.Application",
+    "MacroTool.Infrastructure",
+    "MacroTool"
+)
 
-# Product assembly = MacroTool (test assemblies excluded from the gate).
-# TextSummary prints the assembly row as "MacroTool    58.3%".
-$productLine = ($summaryText -split "`r?`n") | Where-Object { $_ -match "^\s*MacroTool\s+[\d.,]+%" } | Select-Object -First 1
-if (-not $productLine) { throw "MacroTool assembly row not found in Summary.txt" }
-$percentText = [regex]::Match($productLine, "(\d+[\.,]?\d*)%").Groups[1].Value
-$percent = [double]($percentText -replace ",", ".")
+[xml]$coverage = Get-Content -LiteralPath $coverageFile -Raw
+$rows = @()
+$coveredTotal = 0
+$lineTotal = 0
 
-Write-Host ("== MacroTool.dll line coverage: {0} % (threshold {1} %) ==" -f $percent, $Threshold)
+foreach ($name in $productAssemblies) {
+    $package = @($coverage.coverage.packages.package) | Where-Object { $_.name -eq $name } | Select-Object -First 1
+    if (-not $package) { throw "assembly '$name' not found in coverage report: $coverageFile" }
 
-if ($percent -lt $Threshold) {
+    $lines = @($package.SelectNodes("classes/class/lines/line"))
+    $covered = 0
+    foreach ($line in $lines) {
+        if ([int]$line.hits -gt 0) { $covered++ }
+    }
+    $linesCount = $lines.Count
+    $percent = if ($linesCount -gt 0) { [math]::Round(100.0 * $covered / $linesCount, 1) } else { 0.0 }
+
+    $rows += [pscustomobject]@{ Assembly = $name; Covered = $covered; Lines = $linesCount; Percent = $percent }
+    $coveredTotal += $covered
+    $lineTotal += $linesCount
+}
+
+if ($lineTotal -eq 0) { throw "no coverable lines found for product assemblies" }
+$percentTotal = [math]::Round(100.0 * $coveredTotal / $lineTotal, 1)
+
+Write-Host "== product assembly line coverage =="
+$rows | Format-Table -AutoSize | Out-String | Write-Host
+Write-Host ("== aggregate: {0} % ({1}/{2} lines, threshold {3} %) ==" -f $percentTotal, $coveredTotal, $lineTotal, $Threshold)
+
+if ($percentTotal -lt $Threshold) {
     Write-Host "FAIL: coverage below threshold. Report: $(Join-Path $outDir 'report\index.html')"
     exit 1
 }

@@ -1,5 +1,5 @@
-﻿using MacroTool.Application.Engine;
-using MacroTool.Application.Storage;
+﻿using MacroTool.Domain;
+using MacroTool.Infrastructure.Storage;
 
 namespace MacroTool.Tests;
 

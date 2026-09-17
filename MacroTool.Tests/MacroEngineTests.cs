@@ -1,6 +1,8 @@
 ﻿using MacroTool.Application.Engine;
-using MacroTool.Application.Hotkeys;
-using MacroTool.Application.Storage;
+using MacroTool.Application.Ports;
+using MacroTool.Domain;
+using MacroTool.Infrastructure.Hotkeys;
+using MacroTool.Infrastructure.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MacroTool.Tests;
@@ -14,17 +16,19 @@ public sealed class MacroEngineTests : IDisposable
     {
         _dir = Path.Combine(Path.GetTempPath(), "MacroToolEngineTests_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_dir);
-        _engine = NewEngine(delegates: null);
+        _engine = NewEngine();
     }
 
-    private MacroEngine NewEngine(PlayerDelegates? delegates)
+    private MacroEngine NewEngine(IInputSink? sink = null)
         => new(
             new HotkeyHost(),
             new TimelineStore(Path.Combine(_dir, "timeline.json")),
             new EngineSettings(1.0, 2),
             new LogBuffer(),
             NullLogger<MacroEngine>.Instance,
-            delegates);
+            sink ?? new FakeInputSink(),
+            () => new FakeInputCaptureSource(),
+            isElevated: false);
 
     public void Dispose()
     {
@@ -85,7 +89,9 @@ public sealed class MacroEngineTests : IDisposable
             new EngineSettings(10, 0, repeatCount: 3),
             new LogBuffer(),
             NullLogger<MacroEngine>.Instance,
-            new PlayerDelegates((_, _, _) => true, (_, _) => true, () => true));
+            new FakeInputSink(),
+            () => new FakeInputCaptureSource(),
+            isElevated: false);
         try
         {
             engine.ReplaceTimeline(SampleTimeline(duration: 20));
@@ -121,8 +127,7 @@ public sealed class MacroEngineTests : IDisposable
     [Fact]
     public void ReplaceTimeline_WhilePlaying_IsIgnored()
     {
-        var playback = NewEngine(new PlayerDelegates(
-            (_, _, _) => true, (_, _) => true, () => true));
+        var playback = NewEngine(new FakeInputSink());
         playback.ReplaceTimeline(SampleTimeline());
         playback.StartPlayback();
         try
@@ -142,10 +147,9 @@ public sealed class MacroEngineTests : IDisposable
     }
 
     [Fact]
-    public void StartPlayback_WithInjectedDelegates_EntersPlayingAndStops()
+    public void StartPlayback_WithInjectedSink_EntersPlayingAndStops()
     {
-        var engine = NewEngine(new PlayerDelegates(
-            (_, _, _) => true, (_, _) => true, () => true));
+        var engine = NewEngine(new FakeInputSink());
         engine.ReplaceTimeline(SampleTimeline(duration: 20));
 
         engine.StartPlayback();
@@ -167,8 +171,7 @@ public sealed class MacroEngineTests : IDisposable
     [Fact]
     public void TogglePlayback_TogglesState()
     {
-        var engine = NewEngine(new PlayerDelegates(
-            (_, _, _) => true, (_, _) => true, () => true));
+        var engine = NewEngine(new FakeInputSink());
         engine.ReplaceTimeline(SampleTimeline(duration: 20));
 
         engine.TogglePlayback();
@@ -193,8 +196,7 @@ public sealed class MacroEngineTests : IDisposable
     [Fact]
     public void GetSnapshot_ReflectsCurrentTimeline()
     {
-        var engine = NewEngine(new PlayerDelegates(
-            (_, _, _) => true, (_, _) => true, () => true));
+        var engine = NewEngine(new FakeInputSink());
         var timeline = new MacroTimeline
         {
             DurationMs = 500,
@@ -212,6 +214,90 @@ public sealed class MacroEngineTests : IDisposable
         Assert.Equal(2, snapshot.EventCount);
         Assert.Equal(500, snapshot.DurationMs);
         Assert.True(snapshot.HasTimeline);
+        Assert.Equal(1.0, snapshot.Speed);
+        Assert.Equal(2, snapshot.Jitter);
+        Assert.Equal(0, snapshot.RepeatCount);
         engine.Dispose();
+    }
+
+    [Fact]
+    public void SaveTimeline_PersistsAndReplacesTimeline()
+    {
+        var engine = NewEngine();
+        try
+        {
+            var timeline = SampleTimeline(duration: 321);
+
+            var result = engine.SaveTimeline(timeline);
+
+            Assert.True(result.Success);
+            Assert.Same(timeline, engine.CurrentTimeline);
+            Assert.True(File.Exists(Path.Combine(_dir, "timeline.json")));
+        }
+        finally
+        {
+            engine.Dispose();
+        }
+    }
+
+    [Fact]
+    public void LoadTimelineFromDisk_DoesNotReplaceEngineTimeline()
+    {
+        var store = new TimelineStore(Path.Combine(_dir, "timeline.json"));
+        Assert.True(store.Save(SampleTimeline(duration: 111), 1.0).Success);
+
+        var engine = NewEngine();
+        try
+        {
+            engine.ReplaceTimeline(SampleTimeline(duration: 999));
+
+            var load = engine.LoadTimelineFromDisk();
+
+            Assert.True(load.Success);
+            Assert.Equal(111, load.Timeline!.DurationMs);
+            Assert.Equal(999, engine.CurrentTimeline!.DurationMs);
+        }
+        finally
+        {
+            engine.Dispose();
+        }
+    }
+
+    [Fact]
+    public void TimelinePath_MatchesStoreFile()
+    {
+        Assert.Equal(Path.Combine(_dir, "timeline.json"), _engine.TimelinePath);
+    }
+
+    [Fact]
+    public void HotkeyStatusChanged_IsRaised_WhenHotkeysReportStatus()
+    {
+        var hotkeys = new FakeGlobalHotkeys();
+        var engine = new MacroEngine(
+            hotkeys,
+            new TimelineStore(Path.Combine(_dir, "timeline.json")),
+            new EngineSettings(1.0, 2),
+            new LogBuffer(),
+            NullLogger<MacroEngine>.Instance,
+            new FakeInputSink(),
+            () => new FakeInputCaptureSource(),
+            isElevated: false);
+        try
+        {
+            var raised = 0;
+            engine.HotkeyStatusChanged += () => raised++;
+            engine.Start();
+
+            var status = new HotkeyStatus(true, true, "F12", true);
+            hotkeys.Report(status);
+
+            Assert.True(hotkeys.Started);
+            Assert.Equal(1, raised);
+            Assert.Equal(status, engine.HotkeyStatus);
+        }
+        finally
+        {
+            engine.Dispose();
+        }
     }
 }

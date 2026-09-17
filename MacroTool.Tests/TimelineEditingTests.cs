@@ -1,5 +1,5 @@
-﻿using MacroTool.Application.Editing;
-using MacroTool.Application.Engine;
+﻿using MacroTool.Domain;
+using MacroTool.Domain.Editing;
 
 namespace MacroTool.Tests;
 

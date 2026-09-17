@@ -1,6 +1,7 @@
 ﻿using Bunit;
 using MacroTool.Application.Engine;
-using MacroTool.Components.Pages;
+using MacroTool.Web.Components.Pages;
+using MacroTool.Domain;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MacroTool.Tests;

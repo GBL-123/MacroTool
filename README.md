@@ -12,7 +12,7 @@
 ## 快速开始
 
 ```
-1. 运行 MacroTool.exe（或开发时 dotnet run --project MacroTool）
+1. 运行 MacroTool.exe（或开发时 dotnet run --project MacroTool.Web）
 2. 浏览器自动打开 http://localhost:5047（可在配置中关闭自动打开）
 3. 切到游戏，把鼠标移到要点的位置，按 F10（或页面"开始录制"）
 4. 正常操作：点按钮、按技能键……
@@ -107,8 +107,8 @@
 ```powershell
 dotnet build MacroTool.slnx                 # 构建（需 .NET SDK 10.0.400+）
 dotnet test MacroTool.slnx                  # 运行单元测试（引擎状态机、编辑器、存储）
-dotnet publish MacroTool/MacroTool.csproj -c Release -r win-x64 --self-contained false   # 依赖框架发布
-dotnet publish MacroTool/MacroTool.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true   # 自包含单文件
+dotnet publish MacroTool.Web/MacroTool.Web.csproj -c Release -r win-x64 --self-contained false   # 依赖框架发布
+dotnet publish MacroTool.Web/MacroTool.Web.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true   # 自包含单文件
 ```
 
 ## 使用须知与已知限制

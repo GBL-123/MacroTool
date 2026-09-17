@@ -1,4 +1,5 @@
 ﻿using MacroTool.Application.Engine;
+using MacroTool.Domain;
 
 namespace MacroTool.Tests;
 

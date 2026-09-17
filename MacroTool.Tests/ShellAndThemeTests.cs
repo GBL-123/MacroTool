@@ -1,9 +1,10 @@
 using Bunit;
 using MacroTool.Application.Engine;
-using MacroTool.Components.Layout;
-using MacroTool.Components.Pages;
-using MacroTool.Components.Shared;
-using MacroTool.Components.Theme;
+using MacroTool.Domain;
+using MacroTool.Web.Components.Layout;
+using MacroTool.Web.Components.Pages;
+using MacroTool.Web.Components.Shared;
+using MacroTool.Web.Components.Theme;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.Extensions.Logging;

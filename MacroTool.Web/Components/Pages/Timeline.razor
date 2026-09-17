@@ -1,0 +1,426 @@
+@page "/timeline"
+@implements IDisposable
+@inject MacroEngine Engine
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>时间线编辑 - MacroTool</PageTitle>
+
+<div class="page-head">
+    <h1 class="page-title">时间线编辑</h1>
+    <span class="page-sub">事件 @_working.Count · 动作 @_actions.Count · @Duration.ToString("0.000") ms</span>
+    @if (_dirty)
+    {
+        <span class="badge is-warn">未保存</span>
+    }
+    <span class="panel-head-spacer"></span>
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" OnClick="Reload">重新载入</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="Save">保存</MudButton>
+</div>
+
+@if (!Editable)
+{
+    <p class="notice is-info">引擎正在@(_engineState == ToolState.Recording ? "录制" : "回放")，编辑操作已禁用。停止后可继续编辑。</p>
+}
+
+@if (_inverted)
+{
+    <p class="notice is-warn">检测到按下/抬起顺序颠倒（存在未配对的抬起事件）。回放时该动作可能表现异常。</p>
+}
+
+@if (_dirty)
+{
+    <p class="notice is-warn">存在未保存的更改：回放仍使用磁盘上保存的旧时间线，保存后立即生效。</p>
+}
+
+<div class="stack">
+<section class="panel">
+    <div class="tool-groups">
+        <div class="tool-group">
+            <span class="micro-label">修剪保留区间 (ms)</span>
+            <div class="tool-row">
+                <div class="field-xs">
+                    <MudNumericField T="double" @bind-Value="_trimFrom" Placeholder="从" Min="0"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Editable)" />
+                </div>
+                <span class="tool-sep">~</span>
+                <div class="field-xs">
+                    <MudNumericField T="double" @bind-Value="_trimTo" Placeholder="到" Min="0"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Editable)" />
+                </div>
+                <MudButton Variant="Variant.Outlined" Color="Color.Warning" OnClick="Trim" Disabled="@(!Editable)">修剪</MudButton>
+            </div>
+        </div>
+
+        <div class="tool-group">
+            <span class="micro-label">时间平移 (ms)</span>
+            <div class="tool-row">
+                <div class="field-xs">
+                    <MudNumericField T="double" @bind-Value="_shiftOffset" Placeholder="±"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Editable)" />
+                </div>
+                <MudSwitch T="bool" @bind-Value="_shiftSelectedOnly" Color="Color.Primary" Size="Size.Small"
+                           Label="仅选中" Disabled="@(!Editable)" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="Shift" Disabled="@(!Editable)">平移</MudButton>
+            </div>
+        </div>
+
+        <div class="tool-group">
+            <span class="micro-label">时间缩放</span>
+            <div class="tool-row">
+                <div class="field-xs">
+                    <MudNumericField T="double" @bind-Value="_scaleFactor" Placeholder="倍率" Min="0.01" Max="100" Step="0.1"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Editable)" />
+                </div>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="Scale" Disabled="@(!Editable)">缩放</MudButton>
+            </div>
+        </div>
+
+        <div class="tool-group tool-group--end">
+            <span class="micro-label">已选 @_selected.Count 项</span>
+            <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="DeleteSelected" Disabled="@(!Editable || !_selected.Any())">删除选中</MudButton>
+        </div>
+    </div>
+</section>
+
+@if (_actions.Count == 0)
+{
+    <section class="panel">
+        <div class="empty-state">
+            <div class="empty-icon">
+                <MudIcon Icon="@Icons.Material.Filled.EditNote" />
+            </div>
+            <p class="empty-title">还没有可编辑的时间线</p>
+            <p class="empty-sub">先在仪表盘录一段操作，或把 timeline.json 放到时间线文件路径后重新载入。</p>
+            <div class="empty-actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">去录制</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="Reload" Disabled="@(!Editable)">重新载入</MudButton>
+            </div>
+        </div>
+    </section>
+}
+else
+{
+    <section class="panel panel--flush">
+        <MudDataGrid T="TimelineAction" Items="_actions" MultiSelection="true" SelectedItems="_selected"
+                     SelectedItemsChanged="OnSelectionChanged" Virtualize="@(_actions.Count > 200)" Height="500px"
+                     Dense="true" Hover="true" ReadOnly="true" Class="editor-grid">
+            <Columns>
+                <SelectColumn T="TimelineAction" />
+                <HierarchyColumn T="TimelineAction" />
+                <PropertyColumn Property="a => a.Index" Title="#" />
+                <PropertyColumn Property="a => a.IsKey" Title="类型">
+                    <CellTemplate>@(context.Item.IsKey ? "按键" : "点击")</CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Property="a => a.StartT" Title="起点 (ms)">
+                    <CellTemplate><span class="mono">@context.Item.StartT.ToString("0.000")</span></CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Property="a => a.DurationMs" Title="时长 (ms)">
+                    <CellTemplate><span class="mono">@(context.Item.IsPaired ? context.Item.DurationMs.ToString("0.000") : "-")</span></CellTemplate>
+                </PropertyColumn>
+                <TemplateColumn Title="详情" Sortable="false">
+                    <CellTemplate><span class="mono">@Detail(context.Item)</span></CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="操作" Sortable="false">
+                    <CellTemplate>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       Disabled="@(!Editable)" OnClick="@(() => Delete(context.Item))" title="删除该动作" />
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <ChildRowContent>
+                <MudTd colspan="8">
+                    <div class="mono">
+                        @if (context.Item.DownIndex is int downIndex)
+                        {
+                            <div>down @_working[downIndex].T.ToString("0.000") ms</div>
+                        }
+                        @if (context.Item.UpIndex is int upIndex)
+                        {
+                            <div>up @_working[upIndex].T.ToString("0.000") ms</div>
+                        }
+                    </div>
+                </MudTd>
+            </ChildRowContent>
+        </MudDataGrid>
+    </section>
+}
+</div>
+
+@code {
+    private List<MacroEvent> _working = [];
+    private List<TimelineAction> _actions = [];
+    private HashSet<TimelineAction> _selected = [];
+    private bool _dirty;
+    private bool _applyingFromEditor;
+    private bool _inverted;
+    private ToolState _engineState = ToolState.Idle;
+    private bool _subscribed;
+    private bool _disposed;
+
+    private double _trimFrom;
+    private double _trimTo;
+    private double _shiftOffset = 100;
+    private bool _shiftSelectedOnly;
+    private double _scaleFactor = 1.0;
+
+    private double Duration => _working.Count == 0 ? 0 : _working.Max(e => e.T);
+
+    private bool Editable => _engineState == ToolState.Idle;
+
+    protected override void OnInitialized()
+    {
+        _engineState = Engine.State;
+        LoadFromEngine();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender || _subscribed) return;
+        _subscribed = true;
+        Engine.StateChanged += OnEngineStateChanged;
+        Engine.TimelineChanged += OnTimelineReplaced;
+    }
+
+    private void OnEngineStateChanged()
+    {
+        if (_disposed) return;
+        InvokeAsync(() =>
+        {
+            _engineState = Engine.State;
+            StateHasChanged();
+        });
+    }
+
+    private void OnTimelineReplaced()
+    {
+        if (_disposed) return;
+        InvokeAsync(() =>
+        {
+            if (_applyingFromEditor)
+            {
+                StateHasChanged();
+                return;
+            }
+
+            if (_dirty)
+            {
+                Snackbar.Add("引擎时间线已更新；当前编辑页有未保存更改，重新载入可同步", Severity.Info);
+                StateHasChanged();
+                return;
+            }
+            LoadFromEngine();
+            StateHasChanged();
+        });
+    }
+
+    private void LoadFromEngine()
+    {
+        _working = Engine.CurrentTimeline?.Events.Select(e => e.Clone()).ToList() ?? [];
+        Rebuild();
+        _dirty = false;
+        _trimFrom = 0;
+        _trimTo = Math.Round(Duration);
+    }
+
+    private void Rebuild()
+    {
+        _actions = TimelineEditing.BuildActions(_working);
+        _inverted = _working.Count > 0 && TimelineEditing.HasInvertedPairs(_working);
+        _selected = [];
+    }
+
+    private void OnSelectionChanged(HashSet<TimelineAction> selected)
+    {
+        _selected = selected ?? [];
+    }
+
+    private static string Detail(TimelineAction action)
+    {
+        string detail = action.IsKey
+            ? $"{KeyNames.Format(action.Vk)} (scan {action.Scan})"
+            : $"({action.X}, {action.Y})";
+        return action.Unpaired switch
+        {
+            UnpairedKind.Down => detail + " · 未配对(按下)",
+            UnpairedKind.Up => detail + " · 未配对(抬起)",
+            _ => detail
+        };
+    }
+
+    private void Delete(TimelineAction action)
+    {
+        if (!Editable) return;
+        _working = TimelineEditing.DeleteAction(_working, action);
+        MarkChanged();
+    }
+
+    private void DeleteSelected()
+    {
+        if (!Editable) return;
+        var selected = _selected.ToList();
+        if (selected.Count == 0) return;
+        foreach (var action in selected)
+            _working = TimelineEditing.DeleteAction(_working, action);
+        MarkChanged();
+    }
+
+    private async Task Trim()
+    {
+        if (!Editable) return;
+        if (_trimTo < _trimFrom)
+        {
+            Snackbar.Add("保留区间的结束时间不能小于开始时间", Severity.Warning);
+            return;
+        }
+
+        int removed = TimelineEditing.CountTrimmedActions(_working, _trimFrom, _trimTo);
+        if (removed == 0)
+        {
+            Snackbar.Add("该区间没有需要移除的动作", Severity.Info);
+            return;
+        }
+
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            "修剪时间线",
+            $"将移除 {removed} 个动作（保留 {_actions.Count - removed} 个）。动作对不会被拆开。",
+            yesText: "修剪",
+            cancelText: "取消");
+        if (confirmed != true) return;
+
+        _working = TimelineEditing.Trim(_working, _trimFrom, _trimTo);
+        MarkChanged();
+    }
+
+    private void Shift()
+    {
+        if (!Editable) return;
+
+        if (Math.Abs(_shiftOffset) < 0.0001)
+        {
+            Snackbar.Add("平移量不能为 0", Severity.Info);
+            return;
+        }
+
+        var targets = _selected.ToList();
+        if (_shiftSelectedOnly && targets.Count == 0)
+        {
+            Snackbar.Add("请先在表格中勾选要平移的动作", Severity.Warning);
+            return;
+        }
+
+        _working = _shiftSelectedOnly
+            ? TimelineEditing.ShiftActions(_working, targets, _shiftOffset)
+            : TimelineEditing.ShiftAll(_working, _shiftOffset);
+        Normalize();
+        MarkChanged();
+
+        if (_inverted)
+            Snackbar.Add("平移造成了按下/抬起顺序颠倒，请检查警告", Severity.Warning);
+    }
+
+    private async Task Scale()
+    {
+        if (!Editable) return;
+        if (!(_scaleFactor > 0))
+        {
+            Snackbar.Add("缩放倍率必须大于 0", Severity.Warning);
+            return;
+        }
+        if (Math.Abs(_scaleFactor - 1.0) < 0.0001)
+        {
+            Snackbar.Add("缩放倍率为 1，没有变化", Severity.Info);
+            return;
+        }
+
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            "时间缩放",
+            $"把全部事件时间缩放为 {_scaleFactor:0.###} 倍（总时长约 {Duration * _scaleFactor:0.000} ms）。",
+            yesText: "缩放",
+            cancelText: "取消");
+        if (confirmed != true) return;
+
+        _working = TimelineEditing.Scale(_working, _scaleFactor);
+        Normalize();
+        MarkChanged();
+    }
+
+    private void Normalize()
+    {
+        _working = TimelineEditing.Normalize(_working).Events;
+    }
+
+    private void MarkChanged()
+    {
+        Rebuild();
+        _dirty = true;
+    }
+
+    private void Save()
+    {
+        if (!Editable) return;
+
+        var timeline = new MacroTimeline
+        {
+            Events = _working.Select(e => e.Clone()).ToList(),
+            DurationMs = Duration
+        };
+
+        _applyingFromEditor = true;
+        try
+        {
+            var result = Engine.SaveTimeline(timeline);
+            if (!result.Success)
+            {
+                Snackbar.Add("保存失败: " + result.Error, Severity.Error);
+                return;
+            }
+            _dirty = false;
+        }
+        finally
+        {
+            _applyingFromEditor = false;
+        }
+        Snackbar.Add("已保存并应用到引擎", Severity.Success);
+    }
+
+    private async Task Reload()
+    {
+        if (!Editable) return;
+
+        if (_dirty)
+        {
+            bool? confirmed = await DialogService.ShowMessageBoxAsync(
+                "重新载入",
+                "放弃未保存的更改，从磁盘重新载入？",
+                yesText: "放弃并载入",
+                cancelText: "取消");
+            if (confirmed != true) return;
+        }
+
+        var load = Engine.LoadTimelineFromDisk();
+        if (!load.Success)
+        {
+            Snackbar.Add("载入失败: " + load.Error, Severity.Error);
+            return;
+        }
+
+        _working = load.Timeline?.Events.Select(e => e.Clone()).ToList() ?? [];
+        Rebuild();
+        _dirty = false;
+        _trimFrom = 0;
+        _trimTo = Math.Round(Duration);
+        Snackbar.Add($"已从磁盘载入 {_working.Count} 个事件", Severity.Success);
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_subscribed)
+        {
+            Engine.StateChanged -= OnEngineStateChanged;
+            Engine.TimelineChanged -= OnTimelineReplaced;
+        }
+    }
+}

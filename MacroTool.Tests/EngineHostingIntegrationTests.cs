@@ -1,8 +1,9 @@
-﻿using MacroTool.Application;
-using MacroTool.Application.Engine;
-using MacroTool.Application.Hosting;
-using MacroTool.Application.Hotkeys;
-using MacroTool.Application.Storage;
+﻿using MacroTool.Application.Engine;
+using MacroTool.Infrastructure.Hotkeys;
+using MacroTool.Infrastructure.Interop;
+using MacroTool.Infrastructure.Storage;
+using MacroTool.Web.Hosting;
+using MacroTool.Domain;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -38,7 +39,10 @@ public sealed class EngineHostingIntegrationTests
             new TimelineStore(Path.Combine(dir, "timeline.json")),
             new EngineSettings(1.0, 2),
             logs,
-            NullLogger<MacroEngine>.Instance);
+            NullLogger<MacroEngine>.Instance,
+            new FakeInputSink(),
+            () => new FakeInputCaptureSource(),
+            isElevated: false);
         var options = Options.Create(new MacroOptions { Speed = -1, Jitter = -5 });
         var lifetime = new Mock<IHostApplicationLifetime>();
 
@@ -81,7 +85,7 @@ public sealed class EngineHostingIntegrationTests
             return;
 
         var ct = Xunit.TestContext.Current.CancellationToken;
-        var recorder = new Recorder();
+        var recorder = new Recorder(new LowLevelHookCapture());
         recorder.Start();
         await Task.Delay(120, ct);
         var timeline = recorder.Stop(dropTrailingMouse: true);
@@ -122,7 +126,10 @@ public sealed class EngineHostingIntegrationTests
                 store,
                 new EngineSettings(1.0, 2),
                 logs,
-                NullLogger<MacroEngine>.Instance);
+                NullLogger<MacroEngine>.Instance,
+                new FakeInputSink(),
+                () => new LowLevelHookCapture(),
+                isElevated: false);
             try
             {
                 engine.ReplaceTimeline(store.Load().Timeline!);
