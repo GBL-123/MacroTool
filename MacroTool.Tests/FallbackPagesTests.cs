@@ -103,4 +103,29 @@ public sealed class FallbackPagesTests : IDisposable
         Assert.Contains("恢复会话失败", cut.Markup);
         Assert.Contains("服务可能已退出", cut.Find(".components-reconnect-hint").TextContent);
     }
+
+    [Fact]
+    public void ReconnectModalStyles_TrackFrameworkRetryingState()
+    {
+        var css = File.ReadAllText(Path.Combine(
+            FindRepoRoot(), "MacroTool.Web", "Components", "Layout", "ReconnectModal.razor.css"));
+
+        Assert.Contains(
+            "dialog[open].components-reconnect-retrying .components-reconnect-repeated-attempt-visible",
+            css);
+        Assert.Contains(
+            "dialog[open].components-reconnect-show:not(.components-reconnect-retrying) .components-reconnect-first-attempt-visible",
+            css);
+        Assert.DoesNotContain("dialog[open].components-reconnect-repeated-attempt", css);
+    }
+
+    private static string FindRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "MacroTool.slnx")))
+            dir = dir.Parent;
+
+        return dir?.FullName ?? throw new InvalidOperationException("Repository root not found.");
+    }
 }

@@ -23,7 +23,7 @@
     #components-reconnect-modal.components-reconnect-show,
     #components-reconnect-modal[open],
     #components-reconnect-modal.components-reconnect-failed,
-    #components-reconnect-modal.components-reconnect-repeated-attempt,
+    #components-reconnect-modal.components-reconnect-retrying,
     #components-reconnect-modal.components-reconnect-paused,
     #components-reconnect-modal.components-reconnect-resume-failed,
     #components-reconnect-modal.components-pause,
@@ -134,12 +134,17 @@
     display: none;
 }
 
-dialog[open].components-reconnect-show .components-reconnect-first-attempt-visible {
+dialog[open].components-reconnect-show:not(.components-reconnect-retrying) .components-reconnect-first-attempt-visible {
     display: block;
 }
 
-dialog[open].components-reconnect-show .components-rejoin-loader {
+dialog[open].components-reconnect-show .components-rejoin-loader,
+dialog[open].components-reconnect-retrying .components-rejoin-loader {
     display: inline-flex;
+}
+
+dialog[open].components-reconnect-retrying .components-reconnect-repeated-attempt-visible {
+    display: block;
 }
 
 dialog[open].components-reconnect-failed .components-reconnect-failed-visible {
@@ -148,14 +153,6 @@ dialog[open].components-reconnect-failed .components-reconnect-failed-visible {
 
 dialog[open].components-reconnect-failed #components-reconnect-button {
     display: block;
-}
-
-dialog[open].components-reconnect-repeated-attempt .components-reconnect-repeated-attempt-visible {
-    display: block;
-}
-
-dialog[open].components-reconnect-repeated-attempt .components-rejoin-loader {
-    display: inline-flex;
 }
 
 dialog[open].components-reconnect-paused .components-pause-visible,
