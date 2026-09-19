@@ -1,9 +1,43 @@
 @page "/not-found"
 @layout Layout.MainLayout
+@using Microsoft.AspNetCore.Diagnostics
+@inject NavigationManager Nav
 
-<PageTitle>Not Found</PageTitle>
+<PageTitle>页面不存在 - MacroTool</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">404 - Page Not Found</MudText>
-<MudText Class="mb-8">Sorry, the content you are looking for does not exist.</MudText>
+<MudPaper Elevation="0" Class="panel">
+    <div class="empty-state">
+        <div class="empty-icon" style="font-family: var(--font-display); font-size: 16px; font-weight: 700;">404</div>
+        <h1 class="empty-title">页面不存在</h1>
+        <p class="empty-sub">@SubText()</p>
+        <div class="empty-actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">返回概览</MudButton>
+        </div>
+    </div>
+</MudPaper>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">Go to Home</MudButton>
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? DisplayPath =>
+        ResolveDisplayPath(HttpContext?.Features.Get<IStatusCodeReExecuteFeature>()?.OriginalPath,
+            Nav.ToBaseRelativePath(Nav.Uri));
+
+    private string SubText() => DisplayPath is { } path
+        ? $"地址 {path} 没有对应页面，可能已被移动或删除。"
+        : "没有对应页面，可能已被移动或删除。";
+
+    internal static string? ResolveDisplayPath(string? originalPath, string? relativePath)
+    {
+        var candidate = string.IsNullOrWhiteSpace(originalPath) ? relativePath : originalPath;
+        if (string.IsNullOrWhiteSpace(candidate))
+            return null;
+
+        var trimmed = candidate.Trim();
+        if (!trimmed.StartsWith('/'))
+            trimmed = "/" + trimmed;
+
+        return string.Equals(trimmed, "/not-found", StringComparison.OrdinalIgnoreCase) ? null : trimmed;
+    }
+}

@@ -100,5 +100,7 @@ public sealed class ShellAndThemeTests : IDisposable
 
         Assert.Contains("BODY-CONTENT", cut.Find(".page").TextContent);
         Assert.Contains("MacroTool", cut.Find(".brand-name").TextContent);
+        Assert.NotNull(cut.Find(".mud-appbar"));
+        Assert.NotNull(cut.Find(".mud-main-content"));
     }
 }

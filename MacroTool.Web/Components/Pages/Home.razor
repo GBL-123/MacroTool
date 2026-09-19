@@ -4,77 +4,83 @@
 
 <PageTitle>概览 - MacroTool</PageTitle>
 
-<div class="dash-grid">
-    <section class="panel col-6 panel-column">
-        <div class="panel-head">
-            <h2 class="panel-title">当前会话</h2>
-            <span class="panel-head-spacer"></span>
-            <span class="panel-head-meta">@StatusHint()</span>
-        </div>
+<MudGrid Spacing="4" Class="dash-grid">
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="0" Class="panel panel-column">
+            <div class="panel-head">
+                <h2 class="panel-title">当前会话</h2>
+                <span class="panel-head-spacer"></span>
+                <span class="panel-head-meta">@StatusHint()</span>
+            </div>
 
-        <div class="status-inline">
-            <span class="status-dot @StatusDotClass()"></span>
-            <span class="status-inline-label">@StatusLabel()</span>
-        </div>
+            <div class="status-inline">
+                <span class="status-dot @StatusDotClass()"></span>
+                <span class="status-inline-label">@StatusLabel()</span>
+            </div>
 
-        <div class="metrics metrics--flush">
-            @if (_snapshot.State == ToolState.Recording)
+            <div class="metrics metrics--flush">
+                @if (_snapshot.State == ToolState.Recording)
+                {
+                    <Metric Label="点击" Value="@_snapshot.ClickCount.ToString()" />
+                    <Metric Label="按键" Value="@_snapshot.KeyCount.ToString()" />
+                    <Metric Label="已录" Value="@FormatMs(_snapshot.RecordingElapsedMs)" />
+                }
+                else if (_snapshot.State == ToolState.Playing)
+                {
+                    <Metric Label="完成轮数" Value="@_snapshot.PlaybackRound.ToString()" />
+                    <Metric Label="已播" Value="@FormatMs(_snapshot.PlaybackElapsedMs)" />
+                }
+                else
+                {
+                    <Metric Label="事件" Value="@_snapshot.EventCount.ToString()" />
+                    <Metric Label="总时长" Value="@FormatMs(_snapshot.DurationMs)" />
+                }
+            </div>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="0" Class="panel">
+            <div class="panel-head">
+                <h2 class="panel-title">时间线</h2>
+                <span class="panel-head-spacer"></span>
+                @if (_snapshot.HasTimeline)
+                {
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Edit" Href="/timeline">编辑</MudButton>
+                }
+            </div>
+
+            @if (_snapshot.HasTimeline)
             {
-                <Metric Label="点击" Value="@_snapshot.ClickCount.ToString()" />
-                <Metric Label="按键" Value="@_snapshot.KeyCount.ToString()" />
-                <Metric Label="已录" Value="@FormatMs(_snapshot.RecordingElapsedMs)" />
-            }
-            else if (_snapshot.State == ToolState.Playing)
-            {
-                <Metric Label="完成轮数" Value="@_snapshot.PlaybackRound.ToString()" />
-                <Metric Label="已播" Value="@FormatMs(_snapshot.PlaybackElapsedMs)" />
+                <div class="kv">
+                    <div class="kv-row">
+                        <span class="kv-key">事件</span>
+                        <span class="kv-val">@_snapshot.EventCount</span>
+                    </div>
+                    <div class="kv-row">
+                        <span class="kv-key">总时长</span>
+                        <span class="kv-val">@FormatMs(_snapshot.DurationMs)</span>
+                    </div>
+                    <div class="kv-row">
+                        <span class="kv-key">文件</span>
+                        <span class="kv-val">@Engine.TimelinePath</span>
+                    </div>
+                </div>
             }
             else
             {
-                <Metric Label="事件" Value="@_snapshot.EventCount.ToString()" />
-                <Metric Label="总时长" Value="@FormatMs(_snapshot.DurationMs)" />
+                <MudAlert Class="notice is-info" Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                    尚无时间线，按 F10 或在控制条点"录制"。
+                </MudAlert>
             }
-        </div>
-    </section>
+        </MudPaper>
+    </MudItem>
 
-    <section class="panel col-6">
-        <div class="panel-head">
-            <h2 class="panel-title">时间线</h2>
-            <span class="panel-head-spacer"></span>
-            @if (_snapshot.HasTimeline)
-            {
-                <MudButton Variant="Variant.Outlined" Size="Size.Small"
-                           StartIcon="@Icons.Material.Filled.Edit" Href="/timeline">编辑</MudButton>
-            }
-        </div>
-
-        @if (_snapshot.HasTimeline)
-        {
-            <div class="kv">
-                <div class="kv-row">
-                    <span class="kv-key">事件</span>
-                    <span class="kv-val">@_snapshot.EventCount</span>
-                </div>
-                <div class="kv-row">
-                    <span class="kv-key">总时长</span>
-                    <span class="kv-val">@FormatMs(_snapshot.DurationMs)</span>
-                </div>
-                <div class="kv-row">
-                    <span class="kv-key">文件</span>
-                    <span class="kv-val">@Engine.TimelinePath</span>
-                </div>
-            </div>
-        }
-        else
-        {
-            <p class="notice is-info">尚无时间线，按 F10 或在控制条点"录制"。</p>
-        }
-    </section>
-
-    <div class="col-12">
+    <MudItem xs="12">
         <EnvHints />
-    </div>
-</div>
+    </MudItem>
+</MudGrid>
 
 @code {
     private EngineSnapshot _snapshot;

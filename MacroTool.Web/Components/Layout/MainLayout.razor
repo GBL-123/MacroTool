@@ -7,8 +7,10 @@
 
 <a class="skip-link" href="#main-content">跳到主要内容</a>
 
-<ControlBar />
+<MudLayout>
+    <ControlBar />
 
-<main id="main-content" class="page">
-    @Body
-</main>
+    <MudMainContent id="main-content" Class="page">
+        @Body
+    </MudMainContent>
+</MudLayout>

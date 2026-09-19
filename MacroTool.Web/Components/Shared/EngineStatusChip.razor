@@ -1,9 +1,9 @@
 @implements IDisposable
 @inject MacroEngine Engine
 
-<span class="state-pill @PillClass()">
+<MudChip T="string" Class="@("state-pill " + PillClass())" Color="@ChipColor()" Variant="Variant.Text" Size="Size.Small">
     <span class="state-dot"></span>@Label()
-</span>
+</MudChip>
 
 @code {
     private ToolState _state = ToolState.Idle;
@@ -41,6 +41,13 @@
         ToolState.Recording => "is-recording",
         ToolState.Playing => "is-playing",
         _ => "is-idle"
+    };
+
+    private Color ChipColor() => _state switch
+    {
+        ToolState.Recording => Color.Error,
+        ToolState.Playing => Color.Success,
+        _ => Color.Default
     };
 
     public void Dispose()

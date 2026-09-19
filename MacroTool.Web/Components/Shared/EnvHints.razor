@@ -1,7 +1,7 @@
 @implements IDisposable
 @inject MacroEngine Engine
 
-<section class="panel">
+<MudPaper Elevation="0" Class="panel">
     <div class="panel-head">
         <h2 class="panel-title">环境与热键</h2>
     </div>
@@ -33,7 +33,9 @@
 
     @if (!Engine.HotkeyStatus.FullyOperational)
     {
-        <p class="notice is-warn">热键可能被其他程序占用；不影响页面控制，退出请用"关闭服务"。</p>
+        <MudAlert Class="notice is-warn" Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+            热键可能被其他程序占用；不影响页面控制，退出请用"关闭服务"。
+        </MudAlert>
     }
 
     <ul class="hints">
@@ -41,7 +43,7 @@
         <li>点击坐标为屏幕绝对坐标；仅记录鼠标左键与键盘。</li>
         <li class="is-danger">反作弊游戏存在封号风险，请在单机或允许宏的游戏中使用。</li>
     </ul>
-</section>
+</MudPaper>
 
 @code {
     private bool _subscribed;

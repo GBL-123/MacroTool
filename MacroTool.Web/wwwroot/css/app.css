@@ -39,6 +39,7 @@
     --font-display: "Sitka Text", "Sitka", "Segoe UI", "Microsoft YaHei UI", serif;
     --font-mono: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
     --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+    --log-tall-offset: 230px;
 }
 
 html {
@@ -190,7 +191,12 @@ body::after {
     gap: 4px;
 }
 
-.nav-tab {
+.nav-tabs .mud-nav-item {
+    padding: 0;
+    width: auto;
+}
+
+.nav-tabs .mud-nav-link {
     padding: 7px 14px;
     border-radius: var(--radius-sm);
     color: var(--text-dim);
@@ -198,19 +204,25 @@ body::after {
     font-size: 13.5px;
     font-weight: 500;
     border: 1px solid transparent;
+    white-space: nowrap;
     transition: color 0.18s var(--ease), background 0.18s var(--ease), border-color 0.18s var(--ease);
 }
 
-.nav-tab:hover {
+.nav-tabs .mud-nav-link:hover {
     color: var(--text);
     background: rgba(0, 0, 0, 0.04);
 }
 
-.nav-tab.active {
+.nav-tabs .mud-nav-link.active {
     color: var(--text);
     background: var(--surface-2);
     border-color: var(--border-strong);
     box-shadow: var(--shadow-1);
+}
+
+.nav-tabs .mud-nav-link-text {
+    margin-left: 0;
+    margin-inline-start: 0;
 }
 
 .topbar-spacer {
@@ -288,60 +300,21 @@ body::after {
 
 .bar-field .mud-input-control {
     position: relative;
-    width: 52px;
+    width: 64px;
 }
 
 .bar-field--speed .mud-input-control {
-    width: 72px;
+    width: 84px;
 }
 
 .bar-field .mud-input-control-helper-container {
     display: none;
 }
 
-.bar-field .mud-input-adornment {
-    margin: 0;
-}
-
-.bar-field .mud-input-adornment .mud-icon-button {
-    padding: 0;
-    width: 22px;
-    height: 22px;
-    min-width: 22px;
-}
-
 .bar-field .mud-input {
-    min-height: 26px;
     font-size: 13px;
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-}
-
-.bar-field .mud-input-slot {
-    padding: 0 2px !important;
-}
-
-.bar-field .mud-input-adornment-icon {
-    font-size: 20px;
-}
-
-.bar-field .mud-input.mud-input-outlined .mud-input-outlined-border {
-    border: none;
-    border-bottom: 1px solid var(--border);
-    border-radius: 0;
-}
-
-.bar-field .mud-input.mud-input-outlined:hover .mud-input-outlined-border {
-    border-bottom-color: var(--border-strong) !important;
-}
-
-.bar-field .mud-input.mud-input-outlined.mud-input-focused .mud-input-outlined-border {
-    border-width: 0 0 2px 0 !important;
-    border-bottom-color: #111111 !important;
-}
-
-.bar-field .mud-input-control.mud-input-error .mud-input-outlined-border {
-    border-bottom-color: var(--mud-palette-error) !important;
 }
 
 .banner-in-frame {
@@ -432,6 +405,10 @@ body::after {
     padding: 30px 26px 72px;
 }
 
+.mud-main-content.page {
+    padding-top: 30px;
+}
+
 .page-head {
     display: flex;
     align-items: baseline;
@@ -461,19 +438,13 @@ h1:focus-visible {
     font-variant-numeric: tabular-nums;
 }
 
-.dash-grid {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 18px;
-    align-items: stretch;
+.dash-grid > .mud-grid-item {
+    display: flex;
 }
 
-.col-4 { grid-column: span 4; }
-.col-5 { grid-column: span 5; }
-.col-6 { grid-column: span 6; }
-.col-7 { grid-column: span 7; }
-.col-8 { grid-column: span 8; }
-.col-12 { grid-column: span 12; }
+.dash-grid > .mud-grid-item > .panel {
+    width: 100%;
+}
 
 .stack {
     display: flex;
@@ -490,12 +461,6 @@ h1:focus-visible {
     margin-top: auto;
     align-items: flex-start;
     justify-content: flex-start;
-}
-
-@media (max-width: 1000px) {
-    .col-4, .col-5, .col-6, .col-7, .col-8 {
-        grid-column: span 12;
-    }
 }
 
 /* ---------------- panels ---------------- */
@@ -546,12 +511,6 @@ h1:focus-visible {
 
 /* ---------------- status hero ---------------- */
 
-.status-top {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-}
-
 .status-inline {
     display: flex;
     align-items: center;
@@ -589,30 +548,6 @@ h1:focus-visible {
 .status-dot.is-playing {
     background: var(--ok);
     animation: pulse-ok 2s infinite;
-}
-
-.status-title {
-    margin: 0 0 2px;
-    font-family: var(--font-display);
-    font-size: clamp(26px, 2.6vw, 34px);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
-    text-wrap: balance;
-}
-
-.status-hint {
-    margin: 0;
-    color: var(--text-dim);
-    font-size: 13.5px;
-    max-width: 56ch;
-}
-
-.controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 26px;
 }
 
 .metrics {
@@ -684,33 +619,8 @@ h1:focus-visible {
     color: var(--ok-text);
 }
 
-.panel-sub {
-    margin: 16px 0 0;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-}
-
 .notice {
     margin: 14px 0 0;
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
-    font-size: 12.5px;
-    line-height: 1.6;
-    border: 1px solid var(--border-strong);
-    background: var(--surface-2);
-    color: var(--text-dim);
-}
-
-.notice.is-warn {
-    border-color: rgba(149, 100, 0, 0.3);
-    background: var(--warn-soft);
-    color: var(--warn-text);
-}
-
-.notice.is-info {
-    border-color: rgba(31, 108, 159, 0.28);
-    background: var(--info-soft);
-    color: var(--info-text);
 }
 
 .hints {
@@ -793,25 +703,6 @@ h1:focus-visible {
     color: var(--text-faint);
 }
 
-/* ---------------- badges, chips ---------------- */
-
-.badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 11.5px;
-    font-weight: 600;
-    border: 1px solid transparent;
-}
-
-.badge.is-warn {
-    background: var(--warn-soft);
-    color: var(--warn-text);
-    border-color: rgba(149, 100, 0, 0.3);
-}
-
 /* ---------------- editor toolbar ---------------- */
 
 .tool-groups {
@@ -850,11 +741,6 @@ h1:focus-visible {
     color: var(--text-faint);
 }
 
-.field-label {
-    display: block;
-    margin-bottom: 6px;
-}
-
 .field-xs {
     width: 118px;
 }
@@ -887,6 +773,11 @@ h1:focus-visible {
     background: var(--accent-soft);
     color: var(--accent);
     margin-bottom: 8px;
+}
+
+.empty-icon.is-danger {
+    background: var(--danger-soft);
+    color: var(--danger-text);
 }
 
 .empty-title {
@@ -933,6 +824,15 @@ h1:focus-visible {
 
 /* ---------------- MudBlazor tuning ---------------- */
 
+.mud-appbar.topbar {
+    position: sticky;
+    top: 0;
+}
+
+.topbar .mud-toolbar-appbar {
+    height: auto;
+}
+
 .mud-button-root {
     text-transform: none;
     font-weight: 600;
@@ -955,13 +855,6 @@ h1:focus-visible {
 .mud-button-root:focus-visible {
     outline: 2px solid var(--accent-line);
     outline-offset: 2px;
-}
-
-.mud-button-root.btn-lg {
-    height: 44px;
-    padding: 0 20px;
-    font-size: 14.5px;
-    border-radius: 11px !important;
 }
 
 .mud-button-root.btn-tonal-danger {

@@ -2,7 +2,7 @@
 @inject LogBuffer Logs
 @inject IJSRuntime JS
 
-<section class="panel">
+<MudPaper Elevation="0" Class="panel">
     <div class="panel-head">
         <h2 class="panel-title">运行日志</h2>
         <span class="panel-head-meta">@_entries.Count 条</span>
@@ -11,7 +11,7 @@
                    Color="Color.Primary" Size="Size.Small" Label="跟随" />
     </div>
 
-    <div class="log-panel" style="@(Tall ? "max-height: calc(100vh - 230px);" : "max-height: 300px;")" @ref="_panel">
+    <div class="log-panel" style="@(Tall ? "max-height: calc(100vh - var(--log-tall-offset));" : "max-height: 300px;")" @ref="_panel">
         @if (_entries.Count == 0)
         {
             <div class="log-empty">暂无日志，引擎事件会出现在这里。</div>
@@ -24,7 +24,7 @@
             </div>
         }
     </div>
-</section>
+</MudPaper>
 
 @code {
     private readonly List<EngineLogEntry> _entries = [];

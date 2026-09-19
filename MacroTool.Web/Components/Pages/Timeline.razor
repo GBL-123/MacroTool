@@ -7,11 +7,11 @@
 <PageTitle>时间线编辑 - MacroTool</PageTitle>
 
 <div class="page-head">
-    <h1 class="page-title">时间线编辑</h1>
-    <span class="page-sub">事件 @_working.Count · 动作 @_actions.Count · @Duration.ToString("0.000") ms</span>
+    <MudText Class="page-title" Typo="Typo.h5" HtmlTag="h1">时间线编辑</MudText>
+    <MudText Class="page-sub" Typo="Typo.caption" HtmlTag="span">事件 @_working.Count · 动作 @_actions.Count · @Duration.ToString("0.000") ms</MudText>
     @if (_dirty)
     {
-        <span class="badge is-warn">未保存</span>
+        <MudChip T="string" Class="badge is-warn" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small">未保存</MudChip>
     }
     <span class="panel-head-spacer"></span>
     <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" OnClick="Reload">重新载入</MudButton>
@@ -20,25 +20,31 @@
 
 @if (!Editable)
 {
-    <p class="notice is-info">引擎正在@(_engineState == ToolState.Recording ? "录制" : "回放")，编辑操作已禁用。停止后可继续编辑。</p>
+    <MudAlert Class="notice is-info" Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+        引擎正在@(_engineState == ToolState.Recording ? "录制" : "回放")，编辑操作已禁用。停止后可继续编辑。
+    </MudAlert>
 }
 
 @if (_inverted)
 {
-    <p class="notice is-warn">检测到按下/抬起顺序颠倒（存在未配对的抬起事件）。回放时该动作可能表现异常。</p>
+    <MudAlert Class="notice is-warn" Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+        检测到按下/抬起顺序颠倒（存在未配对的抬起事件）。回放时该动作可能表现异常。
+    </MudAlert>
 }
 
 @if (_dirty)
 {
-    <p class="notice is-warn">存在未保存的更改：回放仍使用磁盘上保存的旧时间线，保存后立即生效。</p>
+    <MudAlert Class="notice is-warn" Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+        存在未保存的更改：回放仍使用磁盘上保存的旧时间线，保存后立即生效。
+    </MudAlert>
 }
 
 <div class="stack">
-<section class="panel">
-    <div class="tool-groups">
-        <div class="tool-group">
-            <span class="micro-label">修剪保留区间 (ms)</span>
-            <div class="tool-row">
+<MudPaper Elevation="0" Class="panel">
+    <MudStack Row="true" Wrap="Wrap.Wrap" Class="tool-groups">
+        <MudStack Class="tool-group">
+            <MudText Class="micro-label" Typo="Typo.caption" HtmlTag="span">修剪保留区间 (ms)</MudText>
+            <MudStack Row="true" Class="tool-row">
                 <div class="field-xs">
                     <MudNumericField T="double" @bind-Value="_trimFrom" Placeholder="从" Min="0"
                                      Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Editable)" />
@@ -49,44 +55,44 @@
                                      Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Editable)" />
                 </div>
                 <MudButton Variant="Variant.Outlined" Color="Color.Warning" OnClick="Trim" Disabled="@(!Editable)">修剪</MudButton>
-            </div>
-        </div>
+            </MudStack>
+        </MudStack>
 
-        <div class="tool-group">
-            <span class="micro-label">时间平移 (ms)</span>
-            <div class="tool-row">
+        <MudStack Class="tool-group">
+            <MudText Class="micro-label" Typo="Typo.caption" HtmlTag="span">时间平移 (ms)</MudText>
+            <MudStack Row="true" Class="tool-row">
                 <div class="field-xs">
-                    <MudNumericField T="double" @bind-Value="_shiftOffset" Placeholder="±"
+                    <MudNumericField T="double" @bind-Value="_shiftOffset" Placeholder="±ms" Step="10"
                                      Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Editable)" />
                 </div>
                 <MudSwitch T="bool" @bind-Value="_shiftSelectedOnly" Color="Color.Primary" Size="Size.Small"
                            Label="仅选中" Disabled="@(!Editable)" />
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="Shift" Disabled="@(!Editable)">平移</MudButton>
-            </div>
-        </div>
+            </MudStack>
+        </MudStack>
 
-        <div class="tool-group">
-            <span class="micro-label">时间缩放</span>
-            <div class="tool-row">
+        <MudStack Class="tool-group">
+            <MudText Class="micro-label" Typo="Typo.caption" HtmlTag="span">时间缩放</MudText>
+            <MudStack Row="true" Class="tool-row">
                 <div class="field-xs">
                     <MudNumericField T="double" @bind-Value="_scaleFactor" Placeholder="倍率" Min="0.01" Max="100" Step="0.1"
                                      Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Editable)" />
                 </div>
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="Scale" Disabled="@(!Editable)">缩放</MudButton>
-            </div>
-        </div>
+            </MudStack>
+        </MudStack>
 
-        <div class="tool-group tool-group--end">
-            <span class="micro-label">已选 @_selected.Count 项</span>
+        <MudStack Class="tool-group tool-group--end">
+            <MudText Class="micro-label" Typo="Typo.caption" HtmlTag="span">已选 @_selected.Count 项</MudText>
             <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
                        OnClick="DeleteSelected" Disabled="@(!Editable || !_selected.Any())">删除选中</MudButton>
-        </div>
-    </div>
-</section>
+        </MudStack>
+    </MudStack>
+</MudPaper>
 
 @if (_actions.Count == 0)
 {
-    <section class="panel">
+    <MudPaper Elevation="0" Class="panel">
         <div class="empty-state">
             <div class="empty-icon">
                 <MudIcon Icon="@Icons.Material.Filled.EditNote" />
@@ -98,11 +104,11 @@
                 <MudButton Variant="Variant.Outlined" OnClick="Reload" Disabled="@(!Editable)">重新载入</MudButton>
             </div>
         </div>
-    </section>
+    </MudPaper>
 }
 else
 {
-    <section class="panel panel--flush">
+    <MudPaper Elevation="0" Class="panel panel--flush">
         <MudDataGrid T="TimelineAction" Items="_actions" MultiSelection="true" SelectedItems="_selected"
                      SelectedItemsChanged="OnSelectionChanged" Virtualize="@(_actions.Count > 200)" Height="500px"
                      Dense="true" Hover="true" ReadOnly="true" Class="editor-grid">
@@ -144,7 +150,7 @@ else
                 </MudTd>
             </ChildRowContent>
         </MudDataGrid>
-    </section>
+    </MudPaper>
 }
 </div>
 

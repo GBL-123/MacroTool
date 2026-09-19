@@ -3,8 +3,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<header class="topbar">
-    <div class="bar-inner">
+<MudAppBar Fixed="false" Class="topbar" WrapContent="true" ToolBarClass="bar-inner" Gutters="false">
         <a class="brand" href="/">
             <span class="brand-mark">M</span>
             <span class="brand-text">
@@ -14,16 +13,16 @@
         </a>
 
         <nav class="nav-tabs">
-            <NavLink class="nav-tab" ActiveClass="active" href="/" Match="NavLinkMatch.All">概览</NavLink>
-            <NavLink class="nav-tab" ActiveClass="active" href="/timeline" Match="NavLinkMatch.Prefix">时间线</NavLink>
-            <NavLink class="nav-tab" ActiveClass="active" href="/logs" Match="NavLinkMatch.Prefix">日志</NavLink>
+            <MudNavLink Class="nav-tab" ActiveClass="active" Href="/" Match="NavLinkMatch.All">概览</MudNavLink>
+            <MudNavLink Class="nav-tab" ActiveClass="active" Href="/timeline" Match="NavLinkMatch.Prefix">时间线</MudNavLink>
+            <MudNavLink Class="nav-tab" ActiveClass="active" Href="/logs" Match="NavLinkMatch.Prefix">日志</MudNavLink>
         </nav>
 
-        <span class="bar-sep" aria-hidden="true"></span>
+        <MudDivider Vertical="true" Class="bar-sep" />
 
         <EngineStatusChip />
 
-        <div class="bar-metrics">
+        <MudStack Row="true" Class="bar-metrics">
             @if (_snapshot.State == ToolState.Recording)
             {
                 <span class="bar-metric"><span class="bar-metric-label">点击</span>@_snapshot.ClickCount</span>
@@ -41,9 +40,9 @@
                 <span class="bar-metric"><span class="bar-metric-label">事件</span>@_snapshot.EventCount</span>
                 <span class="bar-metric"><span class="bar-metric-label">时长</span>@FormatMs(_snapshot.DurationMs)</span>
             }
-        </div>
+        </MudStack>
 
-        <span class="bar-sep" aria-hidden="true"></span>
+        <MudDivider Vertical="true" Class="bar-sep" />
 
         <div class="transport">
             @if (_snapshot.State == ToolState.Recording)
@@ -72,9 +71,9 @@
                        OnClick="StopAll" Disabled="@(_snapshot.State == ToolState.Idle)">停止</MudButton>
         </div>
 
-        <span class="bar-sep" aria-hidden="true"></span>
+        <MudDivider Vertical="true" Class="bar-sep" />
 
-        <div class="bar-params">
+        <MudStack Row="true" Class="bar-params">
             <div class="bar-field bar-field--speed">
                 <span class="micro-label">倍速</span>
                 <MudSelect T="double" @bind-Value="_speed" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
@@ -95,21 +94,20 @@
                               Variant="Variant.Outlined" Margin="Margin.Dense" />
             </div>
             <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" OnClick="Apply">应用</MudButton>
-        </div>
+        </MudStack>
 
         <span class="topbar-spacer"></span>
 
         <MudIconButton Icon="@Icons.Material.Filled.PowerSettingsNew" Color="Color.Inherit"
                        OnClick="Shutdown" title="关闭服务" Size="Size.Small" />
-    </div>
-</header>
+</MudAppBar>
 
 @if (_snapshot.State == ToolState.Recording)
 {
-    <div class="banner-recording banner-in-frame">
-        <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" />
+    <MudAlert Class="banner-recording banner-in-frame" Severity="Severity.Error" Dense="true"
+              Icon="@Icons.Material.Filled.Warning">
         录制中：请勿点击本页面（包括停止按钮），页面上的点击会被录入时间线。建议用 F10 停止录制。
-    </div>
+    </MudAlert>
 }
 
 @code {
