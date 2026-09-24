@@ -165,18 +165,26 @@ public sealed class ControlBarTests : IDisposable
     }
 
     [Fact]
-    public void Shutdown_Confirmed_RequestsEngineShutdown()
+    public async Task Shutdown_Confirmed_ClosesPanel_ThenRequestsEngineShutdown()
     {
         var cut = RenderIdle();
 
-        var raised = false;
-        _scope.Engine.ShutdownRequested += () => raised = true;
+        var panelClosedBeforeShutdown = false;
+        var shutdownRequested = new TaskCompletionSource();
+        _scope.Engine.ShutdownRequested += () =>
+        {
+            panelClosedBeforeShutdown = _scope.Context.JSInterop.Invocations.Any(i => i.Identifier == "macroTool.closePanel");
+            shutdownRequested.TrySetResult();
+        };
 
         cut.Find("button[title='关闭服务']").Click();
         var dialogYes = cut.FindAll(".mud-dialog button").Single(b => b.TextContent.Trim() == "关闭");
         dialogYes.Click();
 
-        Assert.True(raised);
+        await shutdownRequested.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+        Assert.True(panelClosedBeforeShutdown);
+        Assert.Contains(_scope.Context.JSInterop.Invocations, i => i.Identifier == "macroTool.closePanel");
     }
 
     [Fact]
@@ -192,6 +200,7 @@ public sealed class ControlBarTests : IDisposable
         dialogCancel.Click();
 
         Assert.False(raised);
+        Assert.DoesNotContain(_scope.Context.JSInterop.Invocations, i => i.Identifier == "macroTool.closePanel");
     }
 
     public void Dispose()

@@ -2,6 +2,7 @@
 @inject MacroEngine Engine
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <MudAppBar Fixed="false" Class="topbar" WrapContent="true" ToolBarClass="bar-inner" Gutters="false">
         <a class="brand" href="/">
@@ -237,8 +238,19 @@
             yesText: "关闭",
             cancelText: "取消");
 
-        if (confirmed == true)
-            Engine.RequestShutdown(fromUi: true);
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("macroTool.closePanel");
+        }
+        catch
+        {
+        }
+
+        await Task.Delay(350).ConfigureAwait(false);
+        Engine.RequestShutdown(fromUi: true);
     }
 
     private static string FormatMs(double ms) => TimeSpan.FromMilliseconds(Math.Max(0, ms)).ToString(@"m\:ss\.fff");
